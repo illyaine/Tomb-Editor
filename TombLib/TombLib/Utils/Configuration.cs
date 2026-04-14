@@ -201,9 +201,15 @@ namespace TombLib
         public T LoadOrUseDefault<T>(ICollection<LogEventInfo> log = null) where T : ConfigurationBase, new()
         {
             string path = GetDefaultPath();
+            string backupPath = XmlUtils.GetBackupFilePath(path);
+
             if (!File.Exists(path))
             {
                 log?.Add(new LogEventInfo(LogLevel.Info, logger.Name, null, "Unable to load configuration from \"" + path + "\"", null, new FileNotFoundException("File not found", path)));
+
+                if (TryLoadBackup(path, backupPath, log, out T backupConfiguration))
+                    return backupConfiguration;
+
                 return new T();
             }
 
@@ -214,7 +220,49 @@ namespace TombLib
             catch (Exception exc)
             {
                 log?.Add(new LogEventInfo(LogLevel.Info, logger.Name, null, "Unable to load configuration from \"" + path + "\"", null, exc));
+
+                if (TryLoadBackup(path, backupPath, log, out T backupConfiguration))
+                    return backupConfiguration;
+
                 return new T();
+            }
+        }
+
+        private bool TryLoadBackup<T>(string path, string backupPath, ICollection<LogEventInfo> log, out T configuration) where T : ConfigurationBase, new()
+        {
+            configuration = null;
+
+            if (!File.Exists(backupPath))
+                return false;
+
+            try
+            {
+                configuration = Load<T>(backupPath);
+                log?.Add(new LogEventInfo(LogLevel.Info, logger.Name, null, "Recovered configuration from backup \"" + backupPath + "\"", null, null));
+                TryRestoreConfigurationFromBackup(path, backupPath, log);
+                return true;
+            }
+            catch (Exception exc)
+            {
+                log?.Add(new LogEventInfo(LogLevel.Info, logger.Name, null, "Unable to load configuration backup from \"" + backupPath + "\"", null, exc));
+                return false;
+            }
+        }
+
+        private static void TryRestoreConfigurationFromBackup(string path, string backupPath, ICollection<LogEventInfo> log)
+        {
+            try
+            {
+                var directoryPath = Path.GetDirectoryName(path);
+
+                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                    Directory.CreateDirectory(directoryPath);
+
+                File.Copy(backupPath, path, true);
+            }
+            catch (Exception exc)
+            {
+                log?.Add(new LogEventInfo(LogLevel.Info, logger.Name, null, "Unable to restore configuration from backup \"" + backupPath + "\" to \"" + path + "\"", null, exc));
             }
         }
     }

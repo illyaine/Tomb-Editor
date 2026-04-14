@@ -42,6 +42,66 @@ namespace TombEditor.Forms
         // Floating tool boxes are placed on 3D view at runtime
         private readonly ToolPaletteFloating ToolBox = new ToolPaletteFloating();
 
+        private bool _isApplyingWindowLayout;
+        private DockPanelState _lastAppliedWindowLayout;
+        private bool _lastAppliedToolboxVisible;
+        private Point _lastAppliedToolboxPosition;
+
+        private static readonly DockPanelState WindowLayoutInitializationState = new DockPanelState
+        {
+            Regions = new List<DockRegionState>
+            {
+                new DockRegionState
+                {
+                    Area = DarkDockArea.Document,
+                    Groups = new List<DockGroupState>
+                    {
+                        new DockGroupState
+                        {
+                            Contents = new List<string> { "MainView" },
+                            VisibleContent = "MainView"
+                        }
+                    }
+                },
+                new DockRegionState
+                {
+                    Area = DarkDockArea.Left,
+                    Groups = new List<DockGroupState>
+                    {
+                        new DockGroupState
+                        {
+                            Contents = new List<string> { "SectorOptions" },
+                            VisibleContent = "SectorOptions"
+                        }
+                    }
+                },
+                new DockRegionState
+                {
+                    Area = DarkDockArea.Right,
+                    Groups = new List<DockGroupState>
+                    {
+                        new DockGroupState
+                        {
+                            Contents = new List<string> { "TexturePanel" },
+                            VisibleContent = "TexturePanel"
+                        }
+                    }
+                },
+                new DockRegionState
+                {
+                    Area = DarkDockArea.Bottom,
+                    Groups = new List<DockGroupState>
+                    {
+                        new DockGroupState
+                        {
+                            Contents = new List<string> { "Lighting" },
+                            VisibleContent = "Lighting"
+                        }
+                    }
+                }
+            }
+        };
+
         public FormMain(Editor editor)
         {
             InitializeComponent();
@@ -484,19 +544,158 @@ namespace TombEditor.Forms
 
         private void LoadWindowLayout(Configuration configuration)
         {
-            dockArea.RemoveContent();
-            dockArea.RestoreDockPanelState(configuration.Window_Layout, GetWindow);
+            if (configuration == null || _isApplyingWindowLayout)
+                return;
 
-            floatingToolStripMenuItem.Checked = configuration.Rendering3D_ToolboxVisible;
-            ToolBox.Location = configuration.Rendering3D_ToolboxPosition;
+            var layout = NormalizeWindowLayout(configuration.Window_Layout);
+            var toolboxVisible = configuration.Rendering3D_ToolboxVisible;
+            var toolboxPosition = configuration.Rendering3D_ToolboxPosition;
+
+            if (IsSameWindowLayoutRequest(layout, toolboxVisible, toolboxPosition))
+                return;
+
+            _isApplyingWindowLayout = true;
+
+            try
+            {
+                // DarkDockPanel is sensitive to restore order.
+                // Initialize a minimal layout first, then remove it again before applying the actual layout.
+                // Without this, repeated restores can scramble region priorities and collapse panels.
+                dockArea.RemoveContent();
+                dockArea.RestoreDockPanelState(WindowLayoutInitializationState, GetWindow);
+                dockArea.RemoveContent();
+                dockArea.RestoreDockPanelState(layout, GetWindow);
+
+                floatingToolStripMenuItem.Checked = toolboxVisible;
+                ToolBox.Location = toolboxPosition;
+
+                _lastAppliedWindowLayout = CloneDockPanelState(layout);
+                _lastAppliedToolboxVisible = toolboxVisible;
+                _lastAppliedToolboxPosition = toolboxPosition;
+            }
+            finally
+            {
+                _isApplyingWindowLayout = false;
+            }
         }
 
         private void SaveWindowLayout(Configuration configuration)
         {
-            configuration.Window_Layout = dockArea.GetDockPanelState();
+            if (configuration == null)
+                return;
 
+            configuration.Window_Layout = dockArea.GetDockPanelState();
             configuration.Rendering3D_ToolboxVisible = floatingToolStripMenuItem.Checked;
             configuration.Rendering3D_ToolboxPosition = ToolBox.Location;
+
+            _lastAppliedWindowLayout = CloneDockPanelState(configuration.Window_Layout);
+            _lastAppliedToolboxVisible = configuration.Rendering3D_ToolboxVisible;
+            _lastAppliedToolboxPosition = configuration.Rendering3D_ToolboxPosition;
+        }
+
+        private bool IsSameWindowLayoutRequest(DockPanelState layout, bool toolboxVisible, Point toolboxPosition)
+        {
+            return AreDockPanelStatesEqual(_lastAppliedWindowLayout, layout) &&
+                   _lastAppliedToolboxVisible == toolboxVisible &&
+                   _lastAppliedToolboxPosition == toolboxPosition;
+        }
+
+        private static DockPanelState NormalizeWindowLayout(DockPanelState layout)
+        {
+            if (!IsWindowLayoutValid(layout))
+                return CloneDockPanelState(Configuration.Window_LayoutDefault);
+
+            return CloneDockPanelState(layout);
+        }
+
+        private static bool IsWindowLayoutValid(DockPanelState layout)
+        {
+            if (layout?.Regions == null || layout.Regions.Count == 0)
+                return false;
+
+            var documentRegion = layout.Regions.FirstOrDefault(r => r.Area == DarkDockArea.Document);
+            if (documentRegion?.Groups == null || documentRegion.Groups.Count == 0)
+                return false;
+
+            return documentRegion.Groups.Any(group =>
+                group?.Contents != null && group.Contents.Any(content => string.Equals(content, "MainView", StringComparison.Ordinal)));
+        }
+
+        private static DockPanelState CloneDockPanelState(DockPanelState state)
+        {
+            if (ReferenceEquals(state, null))
+                return null;
+
+            return new DockPanelState
+            {
+                Regions = state.Regions?.Select(region => new DockRegionState
+                {
+                    Area = region.Area,
+                    Size = region.Size,
+                    Groups = region.Groups?.Select(group => new DockGroupState
+                    {
+                        Contents = group.Contents?.ToList() ?? new List<string>(),
+                        VisibleContent = group.VisibleContent,
+                        Order = group.Order,
+                        Size = group.Size
+                    }).ToList() ?? new List<DockGroupState>()
+                }).ToList() ?? new List<DockRegionState>()
+            };
+        }
+
+        private static bool AreDockPanelStatesEqual(DockPanelState first, DockPanelState second)
+        {
+            if (ReferenceEquals(first, second))
+                return true;
+            if (ReferenceEquals(first, null) || ReferenceEquals(second, null))
+                return false;
+            if (first.Regions == null || second.Regions == null)
+                return first.Regions == second.Regions;
+            if (first.Regions.Count != second.Regions.Count)
+                return false;
+
+            for (int i = 0; i < first.Regions.Count; i++)
+            {
+                var firstRegion = first.Regions[i];
+                var secondRegion = second.Regions[i];
+
+                if (firstRegion.Area != secondRegion.Area || firstRegion.Size != secondRegion.Size)
+                    return false;
+                if (firstRegion.Groups == null || secondRegion.Groups == null)
+                {
+                    if (firstRegion.Groups != secondRegion.Groups)
+                        return false;
+                    continue;
+                }
+                if (firstRegion.Groups.Count != secondRegion.Groups.Count)
+                    return false;
+
+                for (int groupIndex = 0; groupIndex < firstRegion.Groups.Count; groupIndex++)
+                {
+                    var firstGroup = firstRegion.Groups[groupIndex];
+                    var secondGroup = secondRegion.Groups[groupIndex];
+
+                    if (firstGroup.VisibleContent != secondGroup.VisibleContent ||
+                        firstGroup.Order != secondGroup.Order ||
+                        firstGroup.Size != secondGroup.Size)
+                        return false;
+
+                    if (firstGroup.Contents == null || secondGroup.Contents == null)
+                    {
+                        if (firstGroup.Contents != secondGroup.Contents)
+                            return false;
+                        continue;
+                    }
+                    if (firstGroup.Contents.Count != secondGroup.Contents.Count)
+                        return false;
+
+                    for (int contentIndex = 0; contentIndex < firstGroup.Contents.Count; contentIndex++)
+                        if (!string.Equals(firstGroup.Contents[contentIndex], secondGroup.Contents[contentIndex], StringComparison.Ordinal))
+                            return false;
+                }
+            }
+
+            return true;
         }
 
         protected override bool ProcessDialogKey(Keys keyData)

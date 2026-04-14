@@ -79,8 +79,38 @@ namespace TombLib.Utils
 
 		public static void WriteXmlFile(string filePath, Type type, object content, XmlWriterSettings settings)
 		{
-			using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-				WriteXmlFile(stream, type, content, settings);
+			if (string.IsNullOrWhiteSpace(filePath))
+				throw new ArgumentException("File path must not be null or empty.", nameof(filePath));
+
+			var fullPath = Path.GetFullPath(filePath);
+			var directoryPath = Path.GetDirectoryName(fullPath);
+
+			if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+				Directory.CreateDirectory(directoryPath);
+
+			var tempFilePath = GetTemporaryWritePath(fullPath);
+			var backupFilePath = GetBackupFilePath(fullPath);
+
+			try
+			{
+				using (var stream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+				{
+					WriteXmlFile(stream, type, content, settings);
+					stream.Flush(true);
+				}
+
+				ValidateXmlFile(tempFilePath, type);
+
+				if (File.Exists(fullPath))
+					File.Replace(tempFilePath, fullPath, backupFilePath, true);
+				else
+					File.Move(tempFilePath, fullPath);
+			}
+			catch
+			{
+				TryDeleteFile(tempFilePath);
+				throw;
+			}
 		}
 
 		public static void WriteXmlFile(Stream stream, Type type, object content, XmlWriterSettings settings)
@@ -109,5 +139,39 @@ namespace TombLib.Utils
 			=> WriteXmlFile(stream, typeof(T), content, settings);
 
 		#endregion Generic Write
+
+		public static string GetBackupFilePath(string filePath)
+		{
+			if (string.IsNullOrWhiteSpace(filePath))
+				throw new ArgumentException("File path must not be null or empty.", nameof(filePath));
+
+			return Path.GetFullPath(filePath) + ".bak";
+		}
+
+		private static string GetTemporaryWritePath(string filePath)
+		{
+			var directoryPath = Path.GetDirectoryName(filePath);
+			var fileName = Path.GetFileName(filePath);
+
+			return Path.Combine(directoryPath ?? string.Empty, fileName + ".tmp." + Guid.NewGuid().ToString("N"));
+		}
+
+		private static void ValidateXmlFile(string filePath, Type type)
+		{
+			using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+				ReadXmlFile(stream, type, null);
+		}
+
+		private static void TryDeleteFile(string filePath)
+		{
+			try
+			{
+				if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+					File.Delete(filePath);
+			}
+			catch
+			{
+			}
+		}
 	}
 }
