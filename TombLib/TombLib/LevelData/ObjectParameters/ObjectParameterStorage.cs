@@ -68,6 +68,16 @@ namespace TombLib.LevelData.ObjectParameters
             _values.Remove(instance);
         }
 
+        public static ObjectParameterObjectKey GetObjectKey(ObjectInstance instance)
+        {
+            if (instance == null)
+                return new ObjectParameterObjectKey();
+
+            var valueSet = new ObjectParameterValueSet();
+            UpdateObjectKey(valueSet, instance);
+            return Clone(valueSet.ObjectKey);
+        }
+
         public static ObjectParameterValueSet Clone(ObjectParameterValueSet valueSet)
         {
             if (valueSet == null)
