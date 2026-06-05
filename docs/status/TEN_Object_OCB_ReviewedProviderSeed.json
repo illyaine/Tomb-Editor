@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-seed-pass-1",
+  "purpose": "Reviewed source-backed seed data for a future Tomb Editor object-parameter OCB provider. This file is not loaded by Tomb Editor yet.",
+  "sources": {
+    "curatedCatalog": "docs/status/TEN_Object_OCB_CuratedCatalog.md",
+    "sourceScan": "docs/status/TEN_Object_OCB_SourceScan_Generated.md",
+    "symbolCatalog": "docs/status/TEN_Object_OCB_SymbolCatalog_Generated.md"
+  },
+  "rules": [
+    "TriggerFlags is the raw TEN OCB value field.",
+    "TestOcb values are bit flags and may be combinable where source uses TestOcb.",
+    "ItemFlags are not raw OCB values and must be shown separately in the UI.",
+    "Unknown raw OCB values must remain editable.",
+    "Only entries with confidence reviewed or verified should be shown as normal presets. Partial entries require an advanced or review marker."
+  ],
+  "entries": [
+    {
+      "id": "generic.doors.common",
+      "scope": "TEN",
+      "objectGroup": "Generic doors",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusiveOrRaw",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Doors/generic_doors.cpp:292",
+        "TombEngine/Objects/Generic/Doors/generic_doors.cpp:381-382"
+      ],
+      "presets": [
+        { "value": 1, "key": "raisableCogSwitchDoor", "label": "Raisable cog-switch door" },
+        { "value": 2, "key": "crowbarDoor", "label": "Crowbar door" }
+      ]
+    },
+    {
+      "id": "generic.switches.generic_switch",
+      "scope": "TEN",
+      "objectGroup": "Generic switch",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusiveWithAnimationFallback",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Switches/generic_switch.cpp:46-53",
+        "TombEngine/Objects/Generic/Switches/generic_switch.cpp:164",
+        "TombEngine/Objects/Generic/Switches/generic_switch.cpp:218-224"
+      ],
+      "presets": [
+        { "value": 0, "symbol": "SWT_BIG_LEVER", "key": "bigLever", "label": "Big lever" },
+        { "value": 1, "symbol": "SWT_SMALL_LEVER", "key": "smallLever", "label": "Small lever" },
+        { "value": 2, "symbol": "SWT_SMALL_BUTTON", "key": "smallButton", "label": "Small button" },
+        { "value": 3, "symbol": "SWT_BIG_BUTTON", "key": "bigButton", "label": "Big button" },
+        { "value": 4, "symbol": "SWT_GIANT_BUTTON", "key": "giantButton", "label": "Giant button" },
+        { "value": 5, "symbol": "SWT_VALVE", "key": "valve", "label": "Valve" },
+        { "value": 6, "symbol": "SWT_WALL_HOLE", "key": "wallHole", "label": "Wall hole" },
+        { "value": 7, "symbol": "SWT_CUSTOM", "key": "customSwitch", "label": "Custom switch using ItemFlags" }
+      ],
+      "rawFallback": {
+        "label": "Animation-ID mode",
+        "description": "Unknown switch OCB values are used as Lara's on animation; OCB + 1 is used as off animation."
+      },
+      "advancedParameters": [
+        { "itemFlagIndex": 4, "key": "customOnAnimation", "label": "Custom on animation", "appliesWhenOcbValue": 7 },
+        { "itemFlagIndex": 5, "key": "customOffAnimation", "label": "Custom off animation", "appliesWhenOcbValue": 7 },
+        { "itemFlagIndex": 6, "key": "customPlacementOffset", "label": "Custom placement offset", "appliesWhenOcbValue": 7 }
+      ]
+    },
+    {
+      "id": "generic.switches.pulley_switch",
+      "scope": "TEN",
+      "objectGroup": "Pulley switch",
+      "parameterKind": "numericOcb",
+      "valueMode": "positiveCount",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Switches/pulley_switch.cpp:21-26",
+        "TombEngine/Objects/Generic/Switches/pulley_switch.cpp:74-79",
+        "TombEngine/Objects/Generic/Switches/pulley_switch.cpp:173-187"
+      ],
+      "fields": [
+        {
+          "key": "requiredPullCount",
+          "label": "Required pull count",
+          "rawOcb": true,
+          "defaultValue": 0,
+          "minimum": 0,
+          "notes": "OCB 0 is converted to 1 during initialization."
+        }
+      ],
+      "developerNotes": {
+        "itemFlagIndexes": {
+          "OneShot": 0,
+          "NotHidden": 1,
+          "PullCountReset": 2,
+          "PullCount": 3,
+          "State": 4,
+          "Status": 5
+        }
+      }
+    },
+    {
+      "id": "generic.pushable.common",
+      "scope": "TEN",
+      "objectGroup": "Pushable objects",
+      "parameterKind": "ocbBitfield",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Object/Pushable/PushableObject.cpp:70-73"
+      ],
+      "bits": [
+        { "bit": 0, "mask": 1, "key": "fallingBehaviour", "label": "Enable falling behaviour" },
+        { "bit": 1, "mask": 2, "key": "disableAutoCenterAlign", "label": "Disable automatic center alignment" }
+      ]
+    },
+    {
+      "id": "generic.traps.dart_emitter",
+      "scope": "TEN",
+      "objectGroup": "Dart / dart emitter",
+      "parameterKind": "signedNumericOcb",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Traps/dart_emitter.cpp:47-50"
+      ],
+      "rules": [
+        { "condition": "value == 0", "key": "defaultDamage", "label": "Default dart damage" },
+        { "condition": "value > 0", "key": "damage", "label": "Damage amount" },
+        { "condition": "value < 0", "key": "poisonDamage", "label": "Poison dart, absolute value is damage" }
+      ]
+    },
+    {
+      "id": "generic.traps.falling_block",
+      "scope": "TEN",
+      "objectGroup": "Falling block",
+      "parameterKind": "numericOcb",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Traps/falling_block.cpp:80",
+        "TombEngine/Objects/Generic/Traps/falling_block.cpp:102-104"
+      ],
+      "rules": [
+        { "condition": "value == 0", "key": "contactActivation", "label": "Default/contact activation path", "confidence": "partial" },
+        { "condition": "value > 0", "key": "frameCountdown", "label": "Frame countdown before falling" }
+      ]
+    },
+    {
+      "id": "generic.traps.crumbling_platform",
+      "scope": "TEN",
+      "objectGroup": "Crumbling platform",
+      "parameterKind": "signedNumericOcb",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Generic/Traps/crumblingPlatform.cpp:92-93",
+        "TombEngine/Objects/Generic/Traps/crumblingPlatform.cpp:121-127"
+      ],
+      "rules": [
+        { "condition": "value == 0", "key": "defaultDelay", "label": "Default crumble delay" },
+        { "condition": "value > 0", "key": "frameDelay", "label": "Frame delay" },
+        { "condition": "value < 0", "key": "triggerRequiredFrameDelay", "label": "Requires trigger; absolute value is frame delay" }
+      ]
+    },
+    {
+      "id": "effects.lens_flare",
+      "scope": "TEN",
+      "objectGroup": "Lens flare",
+      "parameterKind": "numericOcb",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Effects/LensFlare.cpp:175-176"
+      ],
+      "fields": [
+        { "key": "fadeStartRadiusInBlocks", "label": "Fade start radius in blocks", "rawOcb": true, "minimum": 0 }
+      ]
+    },
+    {
+      "id": "effects.ember_emitter",
+      "scope": "TEN",
+      "objectGroup": "Ember emitter",
+      "parameterKind": "signedNumericOcb",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/Effects/EmberEmitter.cpp:28-36",
+        "TombEngine/Objects/Effects/EmberEmitter.cpp:94-99"
+      ],
+      "rules": [
+        { "condition": "value < 0", "key": "areaMode", "label": "Area/randomized ember spawning" },
+        { "condition": "value > 0", "key": "size", "label": "Size: OCB divided by 10" }
+      ]
+    },
+    {
+      "id": "tr1.entity.winged_mutant",
+      "scope": "TEN",
+      "objectGroup": "TR1 Winged Mutant",
+      "parameterKind": "ocbBitfield",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/TR1/Entity/WingedMutant.cpp:110-115",
+        "TombEngine/Objects/TR1/Entity/WingedMutant.cpp:178-225"
+      ],
+      "bits": [
+        { "bit": 0, "mask": 1, "symbol": "WMUTANT_OCB_START_AERIAL", "key": "startAerial", "label": "Start aerial" },
+        { "bit": 1, "mask": 2, "symbol": "WMUTANT_OCB_START_INACTIVE", "key": "startInactive", "label": "Start inactive" },
+        { "bit": 2, "mask": 4, "symbol": "WMUTANT_OCB_START_POSE", "key": "startPose", "label": "Start in pose" },
+        { "bit": 3, "mask": 8, "symbol": "WMUTANT_OCB_NO_WINGS", "key": "noWings", "label": "Disable wings/flying" },
+        { "bit": 4, "mask": 16, "symbol": "WMUTANT_OCB_DISABLE_DART_WEAPON", "key": "disableDartWeapon", "label": "Disable dart weapon", "confidence": "partial" },
+        { "bit": 5, "mask": 32, "symbol": "WMUTANT_OCB_DISABLE_BOMB_WEAPON", "key": "disableBombWeapon", "label": "Disable bomb weapon", "confidence": "partial" }
+      ]
+    },
+    {
+      "id": "tr2.entity.dragon",
+      "scope": "TEN",
+      "objectGroup": "TR2 Dragon",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusive",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/TR2/Entity/Dragon.cpp:113-114",
+        "TombEngine/Objects/TR2/Entity/Dragon.cpp:375",
+        "TombEngine/Objects/TR2/Entity/Dragon.cpp:701"
+      ],
+      "presets": [
+        { "value": 0, "symbol": "DRAGON_OCB_NORMAL", "key": "normal", "label": "Normal dragon behaviour" },
+        { "value": 1, "symbol": "DRAGON_OCB_DAGGER", "key": "daggerRequired", "label": "Requires dagger for kill flow" }
+      ]
+    },
+    {
+      "id": "tr3.entity.raptor",
+      "scope": "TEN",
+      "objectGroup": "TR3 Raptor",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusive",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/TR3/Entity/Raptor.cpp:85-86",
+        "TombEngine/Objects/TR3/Entity/Raptor.cpp:105-108"
+      ],
+      "presets": [
+        { "value": 0, "symbol": "OCB_NORMAL_BEHAVIOUR", "key": "normal", "label": "Normal behaviour" },
+        { "value": 1, "symbol": "OCB_ENABLE_JUMP", "key": "enableJump", "label": "Enable jump behaviour" }
+      ]
+    },
+    {
+      "id": "tr3.entity.seal_mutant",
+      "scope": "TEN",
+      "objectGroup": "TR3 Seal Mutant",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusive",
+      "confidence": "partial",
+      "source": [
+        "TombEngine/Objects/TR3/Entity/SealMutant.cpp:64-65"
+      ],
+      "presets": [
+        { "value": 0, "symbol": "OCB_NORMAL_BEHAVIOUR", "key": "normal", "label": "Normal behaviour" },
+        { "value": 1, "symbol": "OCB_TRAP", "key": "trap", "label": "Trap/start behaviour", "confidence": "partial" }
+      ]
+    },
+    {
+      "id": "tr3.entity.sophia_leigh",
+      "scope": "TEN",
+      "objectGroup": "TR3 Sophia Leigh",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusive",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/TR3/Entity/SophiaLeigh.cpp:131-133",
+        "TombEngine/Objects/TR3/Entity/SophiaLeigh.cpp:300"
+      ],
+      "presets": [
+        { "value": 0, "symbol": "SophiaOCB::Normal", "key": "normal", "label": "Normal behaviour" },
+        { "value": 1, "symbol": "SophiaOCB::Tower", "key": "tower", "label": "Tower behaviour" },
+        { "value": 2, "symbol": "SophiaOCB::TowerWithVolume", "key": "towerWithVolume", "label": "Tower behaviour with volume variant" }
+      ]
+    },
+    {
+      "id": "tr5.entity.guard",
+      "scope": "TEN",
+      "objectGroup": "TR5 Guard",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusive",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/TR5/Entity/tr5_guard.cpp:190-201"
+      ],
+      "presets": [
+        { "value": 0, "symbol": "GuardOcb::None", "key": "none", "label": "No special mode" },
+        { "value": 1, "symbol": "GuardOcb::Reload", "key": "reload", "label": "Reload" },
+        { "value": 2, "symbol": "GuardOcb::DoorKick", "key": "doorKick", "label": "Door kick" },
+        { "value": 3, "symbol": "GuardOcb::RopeDown", "key": "ropeDown", "label": "Rope down" },
+        { "value": 4, "symbol": "GuardOcb::Sleeping", "key": "sleeping", "label": "Sleeping" },
+        { "value": 5, "symbol": "GuardOcb::RopeDownFast", "key": "ropeDownFast", "label": "Rope down fast" },
+        { "value": 6, "symbol": "GuardOcb::WaitOnWall", "key": "waitOnWall", "label": "Wait on wall" },
+        { "value": 7, "symbol": "GuardOcb::UseComputer", "key": "useComputer", "label": "Use computer" },
+        { "value": 8, "symbol": "GuardOcb::StartHuntStop", "key": "startHuntStop", "label": "Start/hunt/stop mode" },
+        { "value": 9, "symbol": "GuardOcb::UseComputerScientist", "key": "useComputerScientist", "label": "Scientist computer-use mode" },
+        { "value": 10, "symbol": "GuardOcb::Idle", "key": "idle", "label": "Idle" },
+        { "value": 11, "symbol": "GuardOcb::Run", "key": "run", "label": "Run" }
+      ]
+    },
+    {
+      "id": "tr5.entity.imp",
+      "scope": "TEN",
+      "objectGroup": "TR5 Imp",
+      "parameterKind": "ocbPreset",
+      "valueMode": "exclusiveOrRaw",
+      "confidence": "verified",
+      "source": [
+        "TombEngine/Objects/TR5/Entity/tr5_imp.cpp:79-81",
+        "TombEngine/Objects/TR5/Entity/tr5_imp.cpp:175-179"
+      ],
+      "presets": [
+        { "value": 1, "symbol": "IMP_OCB_CLIMB_UP", "key": "climbUp", "label": "Climb up" },
+        { "value": 2, "symbol": "IMP_OCB_ROLL", "key": "roll", "label": "Roll" },
+        { "value": 3, "symbol": "IMP_OCB_STONE_ATTACK", "key": "stoneAttack", "label": "Stone attack" }
+      ]
+    }
+  ],
+  "excludedPendingReview": [
+    "SequenceResults value table for sequence doors",
+    "Negative FlameEmitter bit table",
+    "Fireflies signed OCB modes",
+    "PuzzleHole and PuzzleDone special values 998/999/>1024",
+    "TR4 baddy local ocb branches",
+    "TR4 skeleton cases 0..3",
+    "TR5 smoke emitter signed OCB path",
+    "Waterfall ItemFlags versus raw OCB mapping"
+  ]
+}
