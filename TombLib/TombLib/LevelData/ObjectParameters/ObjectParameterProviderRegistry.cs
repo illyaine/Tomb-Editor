@@ -37,6 +37,14 @@ namespace TombLib.LevelData.ObjectParameters
             _providers.Clear();
         }
 
+        public static IObjectParameterProvider FindProvider(string providerId)
+        {
+            if (string.IsNullOrWhiteSpace(providerId))
+                return null;
+
+            return _providers.FirstOrDefault(provider => string.Equals(provider.Id, providerId, StringComparison.OrdinalIgnoreCase));
+        }
+
         public static IEnumerable<ObjectParameterDefinitionSet> GetDefinitionSets(ObjectParameterContext context)
         {
             foreach (IObjectParameterProvider provider in _providers)
@@ -49,6 +57,17 @@ namespace TombLib.LevelData.ObjectParameters
             foreach (IObjectParameterProvider provider in _providers)
                 foreach (ObjectParameterValidationMessage message in provider.Validate(context, valueSet) ?? Enumerable.Empty<ObjectParameterValidationMessage>())
                     yield return message;
+        }
+
+        public static IEnumerable<ObjectParameterExportEntry> Export(ObjectParameterExportContext context)
+        {
+            if (context == null || context.Values == null)
+                yield break;
+
+            IObjectParameterProvider provider = FindProvider(context.Values.ProviderId);
+            if (provider is IObjectParameterExportProvider exportProvider)
+                foreach (ObjectParameterExportEntry entry in exportProvider.Export(context) ?? Enumerable.Empty<ObjectParameterExportEntry>())
+                    yield return entry;
         }
     }
 }
