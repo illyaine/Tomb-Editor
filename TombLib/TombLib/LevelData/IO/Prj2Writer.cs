@@ -1,4 +1,4 @@
-﻿using NLog;
+using NLog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TombLib.IO;
+using TombLib.LevelData.ObjectParameters;
 using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorStructs;
 using TombLib.LevelData.VisualScripting;
@@ -916,7 +917,41 @@ namespace TombLib.LevelData.IO
                     }
                     else
                         logger.Warn("Object " + o + " not supported.");
+
+                    WriteObjectParameters(chunkIO, o, objectInstanceLookup);
                 }
+                chunkIO.WriteChunkEnd();
+            }
+        }
+
+
+        private static void WriteObjectParameters(ChunkWriter chunkIO, ObjectInstance instance, IDictionary<ObjectInstance, int> objectInstanceLookup)
+        {
+            ObjectParameterValueSet valueSet = ObjectParameterStorage.TryGet(instance);
+            if (valueSet == null)
+                return;
+
+            int objectID = objectInstanceLookup.TryGetOrDefault(instance, -1);
+            if (objectID < 0)
+                return;
+
+            using (var chunk = chunkIO.WriteChunk(Prj2Chunks.ObjectParameterSet, long.MaxValue))
+            {
+                LEB128.Write(chunkIO.Raw, objectID);
+                chunkIO.WriteChunkString(Prj2Chunks.ObjectParameterProviderId, valueSet.ProviderId ?? string.Empty);
+                chunkIO.WriteChunkString(Prj2Chunks.ObjectParameterDefinitionSetId, valueSet.DefinitionSetId ?? string.Empty);
+                chunkIO.WriteChunkString(Prj2Chunks.ObjectParameterPresetId, valueSet.PresetId ?? string.Empty);
+
+                foreach (ObjectParameterValue value in valueSet.Values)
+                    using (var valueChunk = chunkIO.WriteChunk(Prj2Chunks.ObjectParameterValue, long.MaxValue))
+                    {
+                        chunkIO.WriteChunkString(Prj2Chunks.ObjectParameterValueId, value.ParameterId ?? string.Empty);
+                        chunkIO.WriteChunkString(Prj2Chunks.ObjectParameterValueData, value.Value ?? string.Empty);
+                        chunkIO.WriteChunkInt(Prj2Chunks.ObjectParameterValueSource, (int)value.Source);
+                        chunkIO.WriteChunkInt(Prj2Chunks.ObjectParameterValueMappingStatus, (int)value.MappingStatus);
+                        chunkIO.WriteChunkEnd();
+                    }
+
                 chunkIO.WriteChunkEnd();
             }
         }

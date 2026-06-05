@@ -1,4 +1,4 @@
-﻿using NLog;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using TombLib.IO;
+using TombLib.LevelData.ObjectParameters;
 using TombLib.Utils;
 using TombLib.Wad;
 using TombLib.LevelData.VisualScripting;
@@ -1201,7 +1202,16 @@ namespace TombLib.LevelData.IO
             chunkIO.ReadChunks((id3, chunkSize3) =>
             {
                 long objectID = LEB128.ReadLong(chunkIO.Raw);
-                if (id3 == Prj2Chunks.ObjectMovable ||
+                if (id3 == Prj2Chunks.ObjectParameterSet)
+                {
+                    ObjectParameterValueSet valueSet = LoadObjectParameterValueSet(chunkIO);
+                    objectLinkActions.Add(new KeyValuePair<long, Action<ObjectInstance>>(objectID, instance =>
+                    {
+                        if (instance != null)
+                            ObjectParameterStorage.Set(instance, valueSet);
+                    }));
+                }
+                else if (id3 == Prj2Chunks.ObjectMovable ||
                     id3 == Prj2Chunks.ObjectMovable2)
                 {
                     var instance = new MoveableInstance();
@@ -1926,6 +1936,71 @@ namespace TombLib.LevelData.IO
                 return true;
             });
             return true;
+        }
+
+
+        private static ObjectParameterValueSet LoadObjectParameterValueSet(ChunkReader chunkIO)
+        {
+            var valueSet = new ObjectParameterValueSet();
+
+            chunkIO.ReadChunks((id4, chunkSize4) =>
+            {
+                if (id4 == Prj2Chunks.ObjectParameterProviderId)
+                    valueSet.ProviderId = chunkIO.ReadChunkString(chunkSize4);
+                else if (id4 == Prj2Chunks.ObjectParameterDefinitionSetId)
+                    valueSet.DefinitionSetId = chunkIO.ReadChunkString(chunkSize4);
+                else if (id4 == Prj2Chunks.ObjectParameterPresetId)
+                    valueSet.PresetId = chunkIO.ReadChunkString(chunkSize4);
+                else if (id4 == Prj2Chunks.ObjectParameterValue)
+                    valueSet.Values.Add(LoadObjectParameterValue(chunkIO));
+                else
+                    return false;
+
+                return true;
+            });
+
+            return valueSet;
+        }
+
+        private static ObjectParameterValue LoadObjectParameterValue(ChunkReader chunkIO)
+        {
+            var value = new ObjectParameterValue();
+
+            chunkIO.ReadChunks((id5, chunkSize5) =>
+            {
+                if (id5 == Prj2Chunks.ObjectParameterValueId)
+                    value.ParameterId = chunkIO.ReadChunkString(chunkSize5);
+                else if (id5 == Prj2Chunks.ObjectParameterValueData)
+                    value.Value = chunkIO.ReadChunkString(chunkSize5);
+                else if (id5 == Prj2Chunks.ObjectParameterValueSource)
+                    value.Source = ParseObjectParameterSource(chunkIO.ReadChunkInt(chunkSize5));
+                else if (id5 == Prj2Chunks.ObjectParameterValueMappingStatus)
+                    value.MappingStatus = ParseObjectParameterMappingStatus(chunkIO.ReadChunkInt(chunkSize5));
+                else
+                    return false;
+
+                return true;
+            });
+
+            return value;
+        }
+
+        private static ObjectParameterSource ParseObjectParameterSource(long value)
+        {
+            if (value < int.MinValue || value > int.MaxValue)
+                return ObjectParameterSource.Unknown;
+
+            int enumValue = (int)value;
+            return Enum.IsDefined(typeof(ObjectParameterSource), enumValue) ? (ObjectParameterSource)enumValue : ObjectParameterSource.Unknown;
+        }
+
+        private static ObjectParameterMappingStatus ParseObjectParameterMappingStatus(long value)
+        {
+            if (value < int.MinValue || value > int.MaxValue)
+                return ObjectParameterMappingStatus.Unknown;
+
+            int enumValue = (int)value;
+            return Enum.IsDefined(typeof(ObjectParameterMappingStatus), enumValue) ? (ObjectParameterMappingStatus)enumValue : ObjectParameterMappingStatus.Unknown;
         }
 
         private static TriggerNode LoadNode(ChunkReader chunkIO, TriggerNode previous = null)

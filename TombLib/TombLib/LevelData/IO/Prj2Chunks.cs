@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using TombLib.IO;
 
@@ -231,6 +231,15 @@ namespace TombLib.LevelData.IO
         /**********/public static readonly ChunkId ObjectTriggerVolume2 = ChunkId.FromString("TeVolume2");
         /**********/public static readonly ChunkId ObjectTriggerVolume3 = ChunkId.FromString("TeVolume3");
         /**********/public static readonly ChunkId ObjectTriggerVolume4 = ChunkId.FromString("TeVolume4");
+        /**********/public static readonly ChunkId ObjectParameterSet = ChunkId.FromString("TeObjParamSet");
+        /************/public static readonly ChunkId ObjectParameterProviderId = ChunkId.FromString("TeObjParamProvider");
+        /************/public static readonly ChunkId ObjectParameterDefinitionSetId = ChunkId.FromString("TeObjParamDefSet");
+        /************/public static readonly ChunkId ObjectParameterPresetId = ChunkId.FromString("TeObjParamPreset");
+        /************/public static readonly ChunkId ObjectParameterValue = ChunkId.FromString("TeObjParamValue");
+        /**************/public static readonly ChunkId ObjectParameterValueId = ChunkId.FromString("TeObjParamValId");
+        /**************/public static readonly ChunkId ObjectParameterValueData = ChunkId.FromString("TeObjParamData");
+        /**************/public static readonly ChunkId ObjectParameterValueSource = ChunkId.FromString("TeObjParamSrc");
+        /**************/public static readonly ChunkId ObjectParameterValueMappingStatus = ChunkId.FromString("TeObjParamStatus");
         /************/public static readonly ChunkId ObjectTrigger2Type = ChunkId.FromString("TeTy");
         /************/public static readonly ChunkId ObjectTrigger2TargetType = ChunkId.FromString("TeTaTy");
         /************/public static readonly ChunkId ObjectTrigger2Target = ChunkId.FromString("TeTa");
