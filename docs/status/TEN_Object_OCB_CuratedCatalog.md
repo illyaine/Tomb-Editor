@@ -1,16 +1,28 @@
-# TEN Object OCB Curated Catalog - Pass 1
+# TEN Object OCB Curated Catalog - Pass 2
 
-This catalog is derived from `docs/status/TEN_Object_OCB_SourceScan_Generated.md` and is intentionally conservative.
-It is not a complete object-parameter provider yet. Only source-backed meanings are listed here.
+This catalog is derived from:
+
+- `docs/status/TEN_Object_OCB_SourceScan_Generated.md`
+- `docs/status/TEN_Object_OCB_SymbolCatalog_Generated.md`
+
+It is intentionally conservative. It is not a complete object-parameter provider yet. Only source-backed meanings are listed here.
+
+## Current generated source coverage
+
+| Generated file | Source files scanned | Entries / findings | Notes |
+| --- | ---: | ---: | --- |
+| `TEN_Object_OCB_SourceScan_Generated.md` | 551 | 2267 findings | Broad source evidence scan for `TriggerFlags`, `TestOcb`, `ItemFlags`, OCB mentions and helpers. |
+| `TEN_Object_OCB_SymbolCatalog_Generated.md` | 736 | 181 entries | OCB/SWT/Sophia/Pulley symbol extraction; includes 34 definitions, 44 enum members and 103 references. |
 
 ## Scope and rules
 
 - `ItemInfo::TriggerFlags` is the OCB storage used by TEN object logic.
 - `ItemInfo::TestOcb()` treats OCB values as bit flags: `(TriggerFlags & ocbFlags) == ocbFlags`.
 - `ItemFlags[]` are runtime/configuration fields and must not be presented as OCB values unless source explicitly copies or derives them from `TriggerFlags`.
-- Entries marked `verified` are directly supported by source comments or simple source control flow.
-- Entries marked `partial` are source-backed but still require either enum-value extraction, slot-name confirmation, or a second manual review before UI exposure.
+- Entries marked `verified` are directly supported by source comments, simple source control flow, or resolved symbol definitions.
+- Entries marked `partial` are source-backed but still require slot-name confirmation, paired object review, or UI wording review before full exposure.
 - Entries marked `needs-review` must not be shipped as user-facing OCB descriptions yet.
+- Generated symbol entries such as local variables named `ocb` are ignored for UI mapping.
 
 ## Core OCB semantics
 
@@ -31,12 +43,18 @@ It is not a complete object-parameter provider yet. Only source-backed meanings 
 | Sequence door | raw value | Door opens when the entered switch sequence resolves to this value. | `TombEngine\Objects\Generic\Doors\sequence_door.cpp:35` | partial | Needs the `SequenceResults` table before listing exact preset values. |
 | Cog switch | `0` / empty | Enables built-in cog-switch-to-door coupling. | `TombEngine\Objects\Generic\Switches\cog_switch.cpp:67`, `:105`, `:148` | partial | UI text should say default cog-door behaviour; non-zero meaning needs review. |
 | Full-block switch | raw value | Appends its `TriggerFlags` to the current sequence array. | `TombEngine\Objects\Generic\Switches\fullblock_switch.cpp:112-113` | verified | Meaning depends on connected sequence door. |
-| Generic switch | `3` | Only this switch type currently passes the temporary underwater interaction guard. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:103-104` | partial | Do not label as final switch type until enum values are extracted. |
-| Generic switch | `3` / `4` | Switch is treated as disabled while in `SWITCH_OFF` state. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:85` | partial | Needs enum-name extraction for user-facing labels. |
-| Generic switch | `SWT_CUSTOM` | Uses `ItemFlags[4]` as on-animation, `ItemFlags[5]` as off-animation, `ItemFlags[6]` as placement offset. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:164`, `:218-219` | partial | This belongs in object parameters, but not as raw OCB-only UI. |
+| Generic switch | `0` / `SWT_BIG_LEVER` | Big lever switch. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:46` | verified | Enum value resolved by symbol catalog. |
+| Generic switch | `1` / `SWT_SMALL_LEVER` | Small lever switch. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:47` | verified | Enum value resolved by symbol catalog. |
+| Generic switch | `2` / `SWT_SMALL_BUTTON` | Small button switch. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:48` | verified | Enum value resolved by symbol catalog. |
+| Generic switch | `3` / `SWT_BIG_BUTTON` | Big button switch; currently also passes the temporary underwater interaction guard. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:49`, `:103-104` | verified | Water-specific wording should stay conservative because source comments mark the guard as temporary. |
+| Generic switch | `4` / `SWT_GIANT_BUTTON` | Giant button switch. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:50` | verified | Enum value resolved by symbol catalog. |
+| Generic switch | `5` / `SWT_VALVE` | Valve switch. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:51` | verified | Enum value resolved by symbol catalog. |
+| Generic switch | `6` / `SWT_WALL_HOLE` | Wall-hole switch. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:52` | verified | Enum value resolved by symbol catalog. |
+| Generic switch | `7` / `SWT_CUSTOM` | Custom switch; uses `ItemFlags[4]` as on-animation, `ItemFlags[5]` as off-animation, `ItemFlags[6]` as placement offset. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:53`, `:164`, `:218-219` | verified | This needs a combined OCB + ItemFlags parameter UI, not only a raw OCB selector. |
 | Generic switch | fallback values | Unknown/non-enum OCB value is used as Lara's on animation; `OCB + 1` is used as off animation. | `TombEngine\Objects\Generic\Switches\generic_switch.cpp:223-224` | verified | UI should warn that this is animation-ID mode. |
 | Pulley switch | `0` | Auto-converted to `1` during initialization. | `TombEngine\Objects\Generic\Switches\pulley_switch.cpp:74-76` | verified | Show `0` as default/one pull. |
 | Pulley switch | positive value | Number of pulls required; decremented until zero. | `TombEngine\Objects\Generic\Switches\pulley_switch.cpp:78-79`, `:173-187` | verified | User-facing label: required pull count. |
+| Pulley switch internal flags | `OneShot=0`, `NotHidden=1`, `PullCountReset=2`, `PullCount=3`, `State=4`, `Status=5` | ItemFlag field indexes used by pulley logic. | `TombEngine\Objects\Generic\Switches\pulley_switch.cpp:21-26` | verified | Not raw OCB values; useful for developer notes/provider implementation only. |
 | Shoot switch 2 | `444` | Special shoot-switch behaviour: trigger test and mesh handling. | `TombEngine\Objects\Generic\Switches\switch.cpp:28`, `:64` | partial | Needs slot-specific UI text; source confirms special value. |
 | Pushable objects | bit `0` | Enables falling behaviour. | `TombEngine\Objects\Generic\Object\Pushable\PushableObject.cpp:70-72` | verified | Present as checkbox. |
 | Pushable objects | bit `1` | Disables automatic center-align when set; center-align is used when bit is clear and object is not solid. | `TombEngine\Objects\Generic\Object\Pushable\PushableObject.cpp:72-73` | verified | Present as inverse checkbox or clear wording. |
@@ -69,18 +87,41 @@ It is not a complete object-parameter provider yet. Only source-backed meanings 
 | Lens flare | positive value | Radius in blocks after which flare starts fading. | `TombEngine\Objects\Effects\LensFlare.cpp:175-176` | verified | Numeric radius in blocks. |
 | Waterfall emitter | ItemFlags enum/defaults | Uses `WaterfallItemFlags` fields for velocity, sprite scale, sparseness, mist scale, etc. | `TombEngine\Objects\TR5\Emitter\Waterfall.cpp:29-57` | partial | Important object-parameter candidate, but not confirmed as raw `TriggerFlags` OCB in this scan. |
 
-## Creature and boss OCBs - first verified candidates
+## Creature and boss OCBs - source-resolved values
 
 | Object / group | Value / bits | Meaning | Source evidence | Status | UI note |
 | --- | --- | --- | --- | --- | --- |
-| TR1 Winged Mutant | `WMUTANT_OCB_START_AERIAL` | Starts in aerial pathfinding and fly animation. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:178-184` | partial | Need enum constant value before UI. |
-| TR1 Winged Mutant | `WMUTANT_OCB_START_INACTIVE` | Starts inactive on ground pathfinding. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:186-190` | partial | Need enum constant value before UI. |
-| TR1 Winged Mutant | `WMUTANT_OCB_START_POSE` | Starts in pose/inactive-style setup. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:192-196` | partial | Need enum constant value before UI. |
-| TR1 Winged Mutant | `WMUTANT_OCB_NO_WINGS` | Disables flying capability. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:218-225` | partial | Need enum constant value before UI. |
-| TR1 Winged Mutant | `WMUTANT_OCB_DISABLE_BOMB_WEAPON` | Disables bomb weapon path. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:228+` | needs-review | Exact value and surrounding source must be confirmed from latest generated report. |
-| TR2 Dragon | `DRAGON_OCB_DAGGER` | Dragon requires player to retrieve dagger for kill flow. | `TombEngine\Objects\TR2\Entity\Dragon.cpp:374-375`, `:701` | partial | Need constant value. Source comment confirms OCB `1` according to scan context. |
-| TR3 Raptor | `OCB_ENABLE_JUMP` | Enables jump behaviour. | `TombEngine\Objects\TR3\Entity\Raptor.cpp:105-108` | partial | Need constant value. |
-| TR3 Sophia Leigh | `SophiaOCB::Tower` | Tower-specific behaviour path. | `TombEngine\Objects\TR3\Entity\SophiaLeigh.cpp:300` | partial | Need enum values and other Sophia modes from current report. |
+| TR1 Winged Mutant | `1` / `WMUTANT_OCB_START_AERIAL` | Starts in aerial pathfinding and fly animation. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:110`, `:178-184` | verified | Bit flag. Can combine with compatible flags. |
+| TR1 Winged Mutant | `2` / `WMUTANT_OCB_START_INACTIVE` | Starts inactive on ground pathfinding. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:111`, `:186-190` | verified | Bit flag. |
+| TR1 Winged Mutant | `4` / `WMUTANT_OCB_START_POSE` | Starts in pose/inactive-style setup. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:112`, `:192-196` | verified | Bit flag. |
+| TR1 Winged Mutant | `8` / `WMUTANT_OCB_NO_WINGS` | Disables flying capability. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:113`, `:218-225` | verified | Bit flag. |
+| TR1 Winged Mutant | `16` / `WMUTANT_OCB_DISABLE_DART_WEAPON` | Disables dart weapon path. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:114` | partial | Meaning source is symbol-backed; behaviour branch still needs final wording. |
+| TR1 Winged Mutant | `32` / `WMUTANT_OCB_DISABLE_BOMB_WEAPON` | Disables bomb weapon path. | `TombEngine\Objects\TR1\Entity\WingedMutant.cpp:115` | partial | Meaning source is symbol-backed; behaviour branch still needs final wording. |
+| TR2 Dragon | `0` / `DRAGON_OCB_NORMAL` | Normal dragon behaviour. | `TombEngine\Objects\TR2\Entity\Dragon.cpp:113` | verified | Enum value resolved by symbol catalog. |
+| TR2 Dragon | `1` / `DRAGON_OCB_DAGGER` | Dragon requires player to retrieve dagger for kill flow. | `TombEngine\Objects\TR2\Entity\Dragon.cpp:114`, `:375`, `:701` | verified | Enum value resolved by symbol catalog. |
+| TR3 Raptor | `0` / `OCB_NORMAL_BEHAVIOUR` | Normal raptor behaviour. | `TombEngine\Objects\TR3\Entity\Raptor.cpp:85` | verified | Enum value resolved by symbol catalog. |
+| TR3 Raptor | `1` / `OCB_ENABLE_JUMP` | Enables jump behaviour. | `TombEngine\Objects\TR3\Entity\Raptor.cpp:86`, `:105-108` | verified | Enum value resolved by symbol catalog. |
+| TR3 Seal Mutant | `0` / `OCB_NORMAL_BEHAVIOUR` | Normal seal mutant behaviour. | `TombEngine\Objects\TR3\Entity\SealMutant.cpp:64` | verified | Enum value resolved by symbol catalog. |
+| TR3 Seal Mutant | `1` / `OCB_TRAP` | Trap/start behaviour. | `TombEngine\Objects\TR3\Entity\SealMutant.cpp:65` | partial | Need behaviour branch review for exact builder wording. |
+| TR3 Sophia Leigh | `0` / `SophiaOCB::Normal` | Normal Sophia behaviour. | `TombEngine\Objects\TR3\Entity\SophiaLeigh.cpp:131` | verified | Enum value resolved by symbol catalog. |
+| TR3 Sophia Leigh | `1` / `SophiaOCB::Tower` | Tower-specific behaviour path. | `TombEngine\Objects\TR3\Entity\SophiaLeigh.cpp:132`, `:300` | verified | Enum value resolved by symbol catalog. |
+| TR3 Sophia Leigh | `2` / `SophiaOCB::TowerWithVolume` | Tower-specific behaviour with volume variant. | `TombEngine\Objects\TR3\Entity\SophiaLeigh.cpp:133` | verified | Behaviour wording may need user-facing simplification. |
+| TR4 Hammer | `60` / `HAMMER_OCB4_INTERVAL` | Interval constant used for OCB 4 hammer behaviour. | `TombEngine\Objects\TR4\Trap\tr4_hammer.cpp:26`, `:96` | partial | Needs full OCB 4 logic review before TE UI exposure. |
+| TR5 Guard | `0` / `None` | No special guard OCB mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:190` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `1` / `Reload` | Reload mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:191` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `2` / `DoorKick` | Door-kick mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:192` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `3` / `RopeDown` | Rope-down mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:193` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `4` / `Sleeping` | Sleeping mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:194` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `5` / `RopeDownFast` | Fast rope-down mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:195` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `6` / `WaitOnWall` | Wait-on-wall mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:196` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `7` / `UseComputer` | Computer-use mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:197` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `8` / `StartHuntStop` | Start/hunt/stop mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:198` | verified | Needs friendlier wording later. |
+| TR5 Guard | `9` / `UseComputerScientist` | Scientist computer-use mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:199` | verified | Needs friendlier wording later. |
+| TR5 Guard | `10` / `Idle` | Idle mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:200` | verified | Enum value resolved by symbol catalog. |
+| TR5 Guard | `11` / `Run` | Run mode. | `TombEngine\Objects\TR5\Entity\tr5_guard.cpp:201` | verified | Enum value resolved by symbol catalog. |
+| TR5 Imp | `1` / `IMP_OCB_CLIMB_UP` | Climb-up behaviour. | `TombEngine\Objects\TR5\Entity\tr5_imp.cpp:79`, `:179` | verified | Enum value resolved by symbol catalog. |
+| TR5 Imp | `2` / `IMP_OCB_ROLL` | Roll behaviour. | `TombEngine\Objects\TR5\Entity\tr5_imp.cpp:80`, `:175` | verified | Enum value resolved by symbol catalog. |
+| TR5 Imp | `3` / `IMP_OCB_STONE_ATTACK` | Stone-attack behaviour. | `TombEngine\Objects\TR5\Entity\tr5_imp.cpp:81` | verified | Enum value resolved by symbol catalog. |
 | TR4 Skeleton | `0..3` | Initialization uses OCB cases 0 to 3. | `TombEngine\Objects\TR4\Entity\tr4_skeleton.cpp:123-127` | partial | Need full switch body before labels are safe. |
 
 ## Do not expose yet
@@ -88,17 +129,18 @@ It is not a complete object-parameter provider yet. Only source-backed meanings 
 These entries are known to exist in the source scan but need a more specific extractor or manual source review before being user-facing:
 
 - `SequenceResults` value table for sequence doors.
-- `SWT_*` switch enum numeric mapping.
 - Negative flame-emitter bit table.
-- `WMUTANT_*` enum constant values.
-- `DRAGON_OCB_DAGGER` numeric definition, even though source comments imply OCB `1`.
-- TR3/TR4/TR5 creature-specific OCB constants caught by the latest OCB-symbol scan.
+- `Fireflies` signed OCB modes.
+- `PuzzleHole` and `PuzzleDone` exact separation for values `998`, `999`, `>1024` and negative animation modes.
+- TR4 baddy local `ocb` branches: symbol extractor sees local variable use, but exact user-facing meaning must be reviewed manually.
+- TR4 skeleton OCB cases 0 to 3.
+- TR5 smoke emitter signed OCB path.
 - Waterfall emitter object parameters: scan confirms ItemFlags-driven fields, but not raw OCB mapping yet.
 
 ## Next implementation plan
 
-1. Extend the scanner or add a second extractor that records constant definitions and enum assignments near OCB symbols.
-2. Generate a machine-readable intermediate catalog, for example `docs/status/TEN_Object_OCB_SourceCatalog.json`, with file, line, object, symbol, value, and confidence.
-3. Only after this catalog is reviewed, create the TE-side object-parameter provider.
-4. In the TE UI, show source-backed labels and keep unknown/raw OCB values editable.
-5. Display Legacy/TEN scope where confirmed; otherwise show `Source-backed, scope pending`.
+1. Create a small reviewed JSON/provider seed from this curated catalog, not directly from the raw generated symbol files.
+2. Add UI categories for `Raw OCB`, `Known OCB presets`, and where necessary `Advanced ItemFlags parameters`.
+3. In the TE UI, show source-backed labels and keep unknown/raw OCB values editable.
+4. Display Legacy/TEN scope where confirmed; otherwise show `Source-backed, scope pending`.
+5. Keep generated reports out of runtime/provider loading; they are review inputs only.
