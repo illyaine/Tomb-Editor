@@ -16,6 +16,7 @@ namespace TombLib.LevelData.ObjectParameters
         public string EngineId { get; set; } = string.Empty;
         public int? SlotId { get; set; }
         public string ObjectTypeId { get; set; } = string.Empty;
+        public ObjectParameterObjectKey ObjectKey { get; set; } = new ObjectParameterObjectKey();
     }
 
     public sealed class ObjectParameterValidationMessage
