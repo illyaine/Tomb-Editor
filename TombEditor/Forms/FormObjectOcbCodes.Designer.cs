@@ -31,6 +31,7 @@ namespace TombEditor.Forms
             labelObject = new DarkUI.Controls.DarkLabel();
             darkGroupBox1 = new DarkUI.Controls.DarkGroupBox();
             gridOcbCodes = new System.Windows.Forms.DataGridView();
+            butUseSelected = new DarkUI.Controls.DarkButton();
             butClose = new DarkUI.Controls.DarkButton();
             darkGroupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridOcbCodes).BeginInit();
@@ -69,11 +70,22 @@ namespace TombEditor.Forms
             gridOcbCodes.Location = new System.Drawing.Point(7, 19);
             gridOcbCodes.MultiSelect = false;
             gridOcbCodes.Name = "gridOcbCodes";
-            gridOcbCodes.ReadOnly = true;
             gridOcbCodes.RowHeadersVisible = false;
             gridOcbCodes.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             gridOcbCodes.Size = new System.Drawing.Size(733, 322);
             gridOcbCodes.TabIndex = 0;
+            // 
+            // butUseSelected
+            // 
+            butUseSelected.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            butUseSelected.Checked = false;
+            butUseSelected.Location = new System.Drawing.Point(563, 391);
+            butUseSelected.Name = "butUseSelected";
+            butUseSelected.Size = new System.Drawing.Size(104, 23);
+            butUseSelected.TabIndex = 2;
+            butUseSelected.Text = "Use selected";
+            butUseSelected.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
+            butUseSelected.Click += butUseSelected_Click;
             // 
             // butClose
             // 
@@ -83,17 +95,19 @@ namespace TombEditor.Forms
             butClose.Location = new System.Drawing.Point(673, 391);
             butClose.Name = "butClose";
             butClose.Size = new System.Drawing.Size(80, 23);
-            butClose.TabIndex = 2;
-            butClose.Text = "Close";
+            butClose.TabIndex = 3;
+            butClose.Text = "Cancel";
             butClose.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             butClose.Click += butClose_Click;
             // 
             // FormObjectOcbCodes
             // 
+            AcceptButton = butUseSelected;
             AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             CancelButton = butClose;
             ClientSize = new System.Drawing.Size(760, 421);
+            Controls.Add(butUseSelected);
             Controls.Add(butClose);
             Controls.Add(darkGroupBox1);
             Controls.Add(labelObject);
@@ -116,6 +130,7 @@ namespace TombEditor.Forms
         private DarkUI.Controls.DarkLabel labelObject;
         private DarkUI.Controls.DarkGroupBox darkGroupBox1;
         private System.Windows.Forms.DataGridView gridOcbCodes;
+        private DarkUI.Controls.DarkButton butUseSelected;
         private DarkUI.Controls.DarkButton butClose;
     }
 }
