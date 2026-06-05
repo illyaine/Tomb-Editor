@@ -131,10 +131,10 @@ $findings = New-Object System.Collections.Generic.List[object]
 
 foreach ($file in $sourceFiles) {
     $relativePath = Get-RelativePath -BasePath $TombEngineRoot -FullPath $file.FullName
-    $lines = @(Get-Content -Path $file.FullName)
+    $fileLines = @(Get-Content -Path $file.FullName)
 
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        $line = $lines[$i]
+    for ($i = 0; $i -lt $fileLines.Count; $i++) {
+        $line = $fileLines[$i]
         $hasMatch = $false
 
         foreach ($pattern in $patterns) {
@@ -149,8 +149,8 @@ foreach ($file in $sourceFiles) {
         }
 
         $start = [Math]::Max(0, $i - $ContextLines)
-        $end = [Math]::Min($lines.Count - 1, $i + $ContextLines)
-        $contextLines = New-Object System.Collections.Generic.List[string]
+        $end = [Math]::Min($fileLines.Count - 1, $i + $ContextLines)
+        $matchContextLines = New-Object System.Collections.Generic.List[string]
 
         for ($j = $start; $j -le $end; $j++) {
             $prefix = " "
@@ -159,7 +159,7 @@ foreach ($file in $sourceFiles) {
             }
 
             $lineNumber = $j + 1
-            $contextLines.Add(($prefix + $lineNumber + ": " + $lines[$j].TrimEnd()))
+            $matchContextLines.Add(($prefix + $lineNumber + ": " + $fileLines[$j].TrimEnd()))
         }
 
         $finding = New-Object PSObject
@@ -169,7 +169,7 @@ foreach ($file in $sourceFiles) {
         Add-Member -InputObject $finding -MemberType NoteProperty -Name Kind -Value (Get-MatchKind -Line $line)
         Add-Member -InputObject $finding -MemberType NoteProperty -Name NumericEvidence -Value (Get-NumericEvidence -Line $line)
         Add-Member -InputObject $finding -MemberType NoteProperty -Name Code -Value $line.Trim()
-        Add-Member -InputObject $finding -MemberType NoteProperty -Name Context -Value ([string]::Join([Environment]::NewLine, $contextLines.ToArray()))
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name Context -Value ([string]::Join([Environment]::NewLine, $matchContextLines.ToArray()))
         $findings.Add($finding)
     }
 }
