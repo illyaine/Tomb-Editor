@@ -33,9 +33,9 @@ namespace TombEditor.Forms
         private void InitializeGrid()
         {
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", Name = "ParameterId", Visible = false });
-            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Source", Name = "Source", FillWeight = 70, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Source", FillWeight = 95, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Parameter", Name = "ParameterName", FillWeight = 150 });
-            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 240, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 220, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Value", Name = "Value", FillWeight = 110 });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Unit", Name = "Unit", FillWeight = 60, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", Name = "MappingStatus", FillWeight = 75, ReadOnly = true });
@@ -45,12 +45,13 @@ namespace TombEditor.Forms
         private string GetObjectCaption()
         {
             ObjectParameterObjectKey key = _context.ObjectKey ?? new ObjectParameterObjectKey();
+            string engine = string.IsNullOrWhiteSpace(_context.EngineId) ? "Unknown engine" : _context.EngineId;
             string slot = key.SlotId.HasValue ? "Slot " + key.SlotId.Value : "No slot";
             string scriptId = key.ScriptId.HasValue ? "Script ID " + key.ScriptId.Value : "No script ID";
             string itemIndex = key.ObjectIndex.HasValue ? "ItemIndex " + key.ObjectIndex.Value : "No item index";
             string luaName = string.IsNullOrWhiteSpace(key.LuaName) ? "No Lua name" : "Lua name " + key.LuaName;
             string ocb = key.Ocb.HasValue ? "OCB " + key.Ocb.Value : "No OCB";
-            return "Engine TEN   |   " + _context.ObjectTypeId + "   |   " + slot + "   |   " + itemIndex + "   |   " + scriptId + "   |   " + luaName + "   |   " + ocb;
+            return "Engine " + engine + "   |   " + _context.ObjectTypeId + "   |   " + slot + "   |   " + itemIndex + "   |   " + scriptId + "   |   " + luaName + "   |   " + ocb;
         }
 
         private void LoadDefinitions()
@@ -274,11 +275,13 @@ namespace TombEditor.Forms
                     row.Cells["Unit"].Value = unit;
                     row.Cells["MappingStatus"].Value = mappingStatus.ToString();
                     row.Cells["Example"].Value = example;
+                    row.Cells["Source"].ToolTipText = GetSourceDescription(source);
                     return;
                 }
             }
 
-            gridValues.Rows.Add(parameterId, GetSourceText(source), name, description, value, unit, mappingStatus.ToString(), example);
+            int index = gridValues.Rows.Add(parameterId, GetSourceText(source), name, description, value, unit, mappingStatus.ToString(), example);
+            gridValues.Rows[index].Cells["Source"].ToolTipText = GetSourceDescription(source);
         }
 
         private static string GetSourceText(ObjectParameterSource source)
@@ -286,15 +289,32 @@ namespace TombEditor.Forms
             switch (source)
             {
                 case ObjectParameterSource.Ocb:
-                    return "[OCB]";
+                    return "Legacy OCB";
                 case ObjectParameterSource.Ten:
-                    return "[TEN]";
+                    return "TEN";
                 case ObjectParameterSource.Script:
-                    return "[Script]";
+                    return "Script";
                 case ObjectParameterSource.Custom:
-                    return "[Custom]";
+                    return "Custom";
                 default:
-                    return "[?]";
+                    return "Unknown";
+            }
+        }
+
+        private static string GetSourceDescription(ObjectParameterSource source)
+        {
+            switch (source)
+            {
+                case ObjectParameterSource.Ocb:
+                    return "Legacy OCB compatibility value. Meaning depends on the selected object/slot.";
+                case ObjectParameterSource.Ten:
+                    return "Native TombEngine object parameter.";
+                case ObjectParameterSource.Script:
+                    return "Script-facing object option.";
+                case ObjectParameterSource.Custom:
+                    return "Parameter supplied by an external provider.";
+                default:
+                    return "Unknown parameter source.";
             }
         }
 
@@ -303,12 +323,16 @@ namespace TombEditor.Forms
             switch (value)
             {
                 case "[OCB]":
+                case "Legacy OCB":
                     return ObjectParameterSource.Ocb;
                 case "[TEN]":
+                case "TEN":
                     return ObjectParameterSource.Ten;
                 case "[Script]":
+                case "Script":
                     return ObjectParameterSource.Script;
                 case "[Custom]":
+                case "Custom":
                     return ObjectParameterSource.Custom;
                 default:
                     return ObjectParameterSource.Unknown;
@@ -345,16 +369,19 @@ namespace TombEditor.Forms
             string description = Convert.ToString(row.Cells["Description"].Value) ?? string.Empty;
             string example = Convert.ToString(row.Cells["Example"].Value) ?? string.Empty;
             string status = Convert.ToString(row.Cells["MappingStatus"].Value) ?? string.Empty;
-            string nameWarning = string.IsNullOrWhiteSpace(_context.ObjectKey?.LuaName) ? "Hint: assign a Lua name for clear TEN runtime references. " : string.Empty;
+            string source = Convert.ToString(row.Cells["Source"].Value) ?? string.Empty;
+            string sourceDescription = GetSourceDescription(ParseSource(source));
+            string nameWarning = ObjectParameterSupport.SupportsRuntimeParameters(_level) && string.IsNullOrWhiteSpace(_context.ObjectKey?.LuaName) ? "Hint: assign a Lua name for clear TEN runtime references. " : string.Empty;
+            string prefix = source + ": " + sourceDescription + " ";
 
             if (string.IsNullOrWhiteSpace(description) && string.IsNullOrWhiteSpace(example))
-                labelHelp.Text = nameWarning + "No additional help for this parameter. Status: " + status;
+                labelHelp.Text = nameWarning + prefix + "No additional help for this parameter. Status: " + status;
             else if (string.IsNullOrWhiteSpace(example))
-                labelHelp.Text = nameWarning + description + " Status: " + status;
+                labelHelp.Text = nameWarning + prefix + description + " Status: " + status;
             else if (string.IsNullOrWhiteSpace(description))
-                labelHelp.Text = nameWarning + "Example: " + example + " Status: " + status;
+                labelHelp.Text = nameWarning + prefix + "Example: " + example + " Status: " + status;
             else
-                labelHelp.Text = nameWarning + description + "  Example: " + example + " Status: " + status;
+                labelHelp.Text = nameWarning + prefix + description + "  Example: " + example + " Status: " + status;
         }
 
         private void butOk_Click(object sender, EventArgs e)
