@@ -33,16 +33,29 @@ function Get-SourceGroup {
 
     $path = $RelativePath.Replace('/', '\')
 
-    if ($path -like "Objects\TR1\*") { return "TR1" }
-    if ($path -like "Objects\TR2\*") { return "TR2" }
-    if ($path -like "Objects\TR3\*") { return "TR3" }
-    if ($path -like "Objects\TR4\*") { return "TR4" }
-    if ($path -like "Objects\TR5\*") { return "TR5" }
-    if ($path -like "Objects\Effects\*") { return "Effects / Emitters" }
-    if ($path -like "Objects\Generic\*") { return "Generic" }
-    if ($path -like "Game\*") { return "Core" }
+    if ($path -like "Objects\TR1\*" -or $path -like "*\Objects\TR1\*") { return "TR1" }
+    if ($path -like "Objects\TR2\*" -or $path -like "*\Objects\TR2\*") { return "TR2" }
+    if ($path -like "Objects\TR3\*" -or $path -like "*\Objects\TR3\*") { return "TR3" }
+    if ($path -like "Objects\TR4\*" -or $path -like "*\Objects\TR4\*") { return "TR4" }
+    if ($path -like "Objects\TR5\*" -or $path -like "*\Objects\TR5\*") { return "TR5" }
+    if ($path -like "Objects\Effects\*" -or $path -like "*\Objects\Effects\*") { return "Effects / Emitters" }
+    if ($path -like "Objects\Generic\*" -or $path -like "*\Objects\Generic\*") { return "Generic" }
+    if ($path -like "Game\*" -or $path -like "*\Game\*") { return "Core" }
 
     return "Other"
+}
+
+function Is-TargetSourceFile {
+    param([string]$RelativePath)
+
+    $path = $RelativePath.Replace('/', '\')
+
+    if ($path -like "Objects\*" -or $path -like "*\Objects\*") { return $true }
+    if ($path -ieq "Game\items.cpp" -or $path -ieq "TombEngine\Game\items.cpp") { return $true }
+    if ($path -ieq "Game\items.h" -or $path -ieq "TombEngine\Game\items.h") { return $true }
+    if ($path -like "*\Game\items.cpp" -or $path -like "*\Game\items.h") { return $true }
+
+    return $false
 }
 
 function Get-MatchKind {
@@ -97,10 +110,7 @@ $sourceFiles = @(Get-ChildItem -Path $TombEngineRoot -Recurse -File |
     } |
     Where-Object {
         $relative = Get-RelativePath -BasePath $TombEngineRoot -FullPath $_.FullName
-        $relativePath = $relative.Replace('/', '\')
-        ($relativePath -like "Objects\*") -or
-        ($relativePath -ieq "Game\items.cpp") -or
-        ($relativePath -ieq "Game\items.h")
+        Is-TargetSourceFile -RelativePath $relative
     } |
     Sort-Object FullName)
 
