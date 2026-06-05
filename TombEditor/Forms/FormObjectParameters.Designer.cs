@@ -41,6 +41,7 @@ namespace TombEditor.Forms
             textPresetId = new DarkUI.Controls.DarkTextBox();
             darkGroupBox1 = new DarkUI.Controls.DarkGroupBox();
             gridValues = new System.Windows.Forms.DataGridView();
+            butOcbCodes = new DarkUI.Controls.DarkButton();
             butHelp = new DarkUI.Controls.DarkButton();
             labelHelp = new DarkUI.Controls.DarkLabel();
             butCancel = new DarkUI.Controls.DarkButton();
@@ -163,7 +164,7 @@ namespace TombEditor.Forms
             darkGroupBox1.Size = new System.Drawing.Size(746, 323);
             darkGroupBox1.TabIndex = 11;
             darkGroupBox1.TabStop = false;
-            darkGroupBox1.Text = "Parameters";
+            darkGroupBox1.Text = "Object codes && parameters";
             // 
             // gridValues
             // 
@@ -183,14 +184,26 @@ namespace TombEditor.Forms
             gridValues.TabIndex = 0;
             gridValues.SelectionChanged += gridValues_SelectionChanged;
             // 
+            // butOcbCodes
+            // 
+            butOcbCodes.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            butOcbCodes.Checked = false;
+            butOcbCodes.Location = new System.Drawing.Point(7, 426);
+            butOcbCodes.Name = "butOcbCodes";
+            butOcbCodes.Size = new System.Drawing.Size(152, 23);
+            butOcbCodes.TabIndex = 12;
+            butOcbCodes.Text = "Show existing OCB codes";
+            butOcbCodes.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
+            butOcbCodes.Click += butShowOcbCodes_Click;
+            // 
             // butHelp
             // 
             butHelp.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             butHelp.Checked = false;
-            butHelp.Location = new System.Drawing.Point(7, 426);
+            butHelp.Location = new System.Drawing.Point(165, 426);
             butHelp.Name = "butHelp";
             butHelp.Size = new System.Drawing.Size(96, 23);
-            butHelp.TabIndex = 12;
+            butHelp.TabIndex = 13;
             butHelp.Text = "Show help";
             butHelp.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             butHelp.Click += butHelp_Click;
@@ -201,10 +214,10 @@ namespace TombEditor.Forms
             labelHelp.AutoSize = false;
             labelHelp.AutoUpdateHeight = true;
             labelHelp.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            labelHelp.Location = new System.Drawing.Point(115, 429);
+            labelHelp.Location = new System.Drawing.Point(267, 429);
             labelHelp.Name = "labelHelp";
-            labelHelp.Size = new System.Drawing.Size(434, 36);
-            labelHelp.TabIndex = 13;
+            labelHelp.Size = new System.Drawing.Size(282, 36);
+            labelHelp.TabIndex = 14;
             labelHelp.Visible = false;
             // 
             // butCancel
@@ -215,7 +228,7 @@ namespace TombEditor.Forms
             butCancel.Location = new System.Drawing.Point(673, 456);
             butCancel.Name = "butCancel";
             butCancel.Size = new System.Drawing.Size(80, 23);
-            butCancel.TabIndex = 15;
+            butCancel.TabIndex = 16;
             butCancel.Text = "Cancel";
             butCancel.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             butCancel.Click += butCancel_Click;
@@ -227,7 +240,7 @@ namespace TombEditor.Forms
             butOk.Location = new System.Drawing.Point(587, 456);
             butOk.Name = "butOk";
             butOk.Size = new System.Drawing.Size(80, 23);
-            butOk.TabIndex = 14;
+            butOk.TabIndex = 15;
             butOk.Text = "OK";
             butOk.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             butOk.Click += butOk_Click;
@@ -243,6 +256,7 @@ namespace TombEditor.Forms
             Controls.Add(butOk);
             Controls.Add(labelHelp);
             Controls.Add(butHelp);
+            Controls.Add(butOcbCodes);
             Controls.Add(darkGroupBox1);
             Controls.Add(textPresetId);
             Controls.Add(darkLabel5);
@@ -283,6 +297,7 @@ namespace TombEditor.Forms
         private DarkUI.Controls.DarkTextBox textPresetId;
         private DarkUI.Controls.DarkGroupBox darkGroupBox1;
         private System.Windows.Forms.DataGridView gridValues;
+        private DarkUI.Controls.DarkButton butOcbCodes;
         private DarkUI.Controls.DarkButton butHelp;
         private DarkUI.Controls.DarkLabel labelHelp;
         private DarkUI.Controls.DarkButton butCancel;
