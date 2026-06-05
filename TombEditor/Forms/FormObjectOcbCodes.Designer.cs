@@ -97,12 +97,14 @@ namespace TombEditor.Forms
             Controls.Add(butClose);
             Controls.Add(darkGroupBox1);
             Controls.Add(labelObject);
-            FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
+            FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            MaximizeBox = true;
             MinimizeBox = false;
+            MinimumSize = new System.Drawing.Size(680, 360);
             Name = "FormObjectOcbCodes";
             ShowIcon = false;
             ShowInTaskbar = false;
+            SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             Text = "Existing OCB Codes";
             darkGroupBox1.ResumeLayout(false);
