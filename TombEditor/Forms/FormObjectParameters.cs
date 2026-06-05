@@ -1,9 +1,6 @@
-using DarkUI.Config;
-using DarkUI.Controls;
 using DarkUI.Forms;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using TombLib.LevelData;
@@ -11,23 +8,13 @@ using TombLib.LevelData.ObjectParameters;
 
 namespace TombEditor.Forms
 {
-    public class FormObjectParameters : DarkForm
+    public partial class FormObjectParameters : DarkForm
     {
         private readonly Level _level;
         private readonly ObjectInstance _instance;
         private readonly ObjectParameterContext _context;
         private bool _isLoading;
         private bool _showHelp;
-
-        private DarkLabel _labelObject;
-        private DarkComboBox _comboDefinitions;
-        private DarkComboBox _comboPresets;
-        private DarkTextBox _textProviderId;
-        private DarkTextBox _textDefinitionSetId;
-        private DarkTextBox _textPresetId;
-        private DataGridView _gridValues;
-        private DarkButton _butHelp;
-        private DarkLabel _labelHelp;
 
         public FormObjectParameters(Level level, ObjectInstance instance)
         {
@@ -36,124 +23,21 @@ namespace TombEditor.Forms
             _context = ObjectParameterContextFactory.FromObject(_level, _instance);
 
             InitializeComponent();
+            InitializeGrid();
+            labelObject.Text = GetObjectCaption();
             LoadDefinitions();
             LoadObjectParameters();
             UpdateHelpPanel();
         }
 
-        private void InitializeComponent()
+        private void InitializeGrid()
         {
-            Text = "Object Parameters";
-            MinimizeBox = false;
-            MaximizeBox = false;
-            ShowIcon = false;
-            ShowInTaskbar = false;
-            StartPosition = FormStartPosition.CenterParent;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            ClientSize = new Size(760, 500);
-            BackColor = Colors.DarkBackground;
-
-            _labelObject = new DarkLabel
-            {
-                Text = GetObjectCaption(),
-                Location = new Point(10, 10),
-                Size = new Size(740, 20)
-            };
-            Controls.Add(_labelObject);
-
-            Controls.Add(CreateLabel("Definition", 10, 42));
-            _comboDefinitions = new DarkComboBox
-            {
-                Location = new Point(105, 38),
-                Size = new Size(405, 22)
-            };
-            _comboDefinitions.SelectedIndexChanged += comboDefinitions_SelectedIndexChanged;
-            Controls.Add(_comboDefinitions);
-
-            Controls.Add(CreateLabel("Preset", 520, 42));
-            _comboPresets = new DarkComboBox
-            {
-                Location = new Point(575, 38),
-                Size = new Size(175, 22)
-            };
-            _comboPresets.SelectedIndexChanged += comboPresets_SelectedIndexChanged;
-            Controls.Add(_comboPresets);
-
-            Controls.Add(CreateLabel("Provider", 10, 70));
-            _textProviderId = CreateTextBox(105, 66, 185);
-            _textProviderId.ReadOnly = true;
-            Controls.Add(_textProviderId);
-
-            Controls.Add(CreateLabel("Definition ID", 300, 70));
-            _textDefinitionSetId = CreateTextBox(390, 66, 180);
-            Controls.Add(_textDefinitionSetId);
-
-            Controls.Add(CreateLabel("Preset ID", 580, 70));
-            _textPresetId = CreateTextBox(640, 66, 110);
-            Controls.Add(_textPresetId);
-
-            _gridValues = new DataGridView
-            {
-                Location = new Point(10, 98),
-                Size = new Size(740, 310),
-                AllowUserToAddRows = true,
-                AllowUserToDeleteRows = true,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                BackgroundColor = Colors.DarkBackground,
-                BorderStyle = BorderStyle.FixedSingle,
-                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
-                RowHeadersVisible = false,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false
-            };
-            _gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", Name = "ParameterId", Visible = false });
-            _gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Parameter", Name = "ParameterName", FillWeight = 150 });
-            _gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Bedeutung", Name = "Description", FillWeight = 260, ReadOnly = true });
-            _gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Wert", Name = "Value", FillWeight = 120 });
-            _gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Einheit", Name = "Unit", FillWeight = 70, ReadOnly = true });
-            _gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Beispiel", Name = "Example", Visible = false });
-            _gridValues.SelectionChanged += gridValues_SelectionChanged;
-            Controls.Add(_gridValues);
-
-            _butHelp = new DarkButton
-            {
-                Text = "Hilfe einblenden",
-                Location = new Point(10, 418),
-                Size = new Size(125, 25)
-            };
-            _butHelp.Click += butHelp_Click;
-            Controls.Add(_butHelp);
-
-            _labelHelp = new DarkLabel
-            {
-                AutoSize = false,
-                Location = new Point(145, 418),
-                Size = new Size(425, 50),
-                AutoUpdateHeight = true,
-                Visible = false
-            };
-            Controls.Add(_labelHelp);
-
-            var butOk = new DarkButton
-            {
-                Text = "OK",
-                Location = new Point(580, 455),
-                Size = new Size(80, 25)
-            };
-            butOk.Click += butOk_Click;
-            Controls.Add(butOk);
-
-            var butCancel = new DarkButton
-            {
-                Text = "Cancel",
-                DialogResult = DialogResult.Cancel,
-                Location = new Point(670, 455),
-                Size = new Size(80, 25)
-            };
-            Controls.Add(butCancel);
-
-            AcceptButton = butOk;
-            CancelButton = butCancel;
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", Name = "ParameterId", Visible = false });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Parameter", Name = "ParameterName", FillWeight = 150 });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 260, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Value", Name = "Value", FillWeight = 120 });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Unit", Name = "Unit", FillWeight = 70, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Example", Name = "Example", Visible = false });
         }
 
         private string GetObjectCaption()
@@ -162,38 +46,19 @@ namespace TombEditor.Forms
             string slot = key.SlotId.HasValue ? "Slot " + key.SlotId.Value : "No slot";
             string scriptId = key.ScriptId.HasValue ? "Script ID " + key.ScriptId.Value : "No script ID";
             string room = key.RoomIndex.HasValue ? "Room " + key.RoomIndex.Value : "No room";
-            return "Object: " + _context.ObjectTypeId + "   |   " + slot + "   |   " + scriptId + "   |   " + room;
-        }
-
-        private static DarkLabel CreateLabel(string text, int x, int y)
-        {
-            return new DarkLabel
-            {
-                Text = text,
-                Location = new Point(x, y + 4),
-                Size = new Size(90, 20)
-            };
-        }
-
-        private static DarkTextBox CreateTextBox(int x, int y, int width)
-        {
-            return new DarkTextBox
-            {
-                Location = new Point(x, y),
-                Size = new Size(width, 22)
-            };
+            return _context.ObjectTypeId + "   |   " + slot + "   |   " + scriptId + "   |   " + room;
         }
 
         private void LoadDefinitions()
         {
             _isLoading = true;
-            _comboDefinitions.Items.Clear();
-            _comboDefinitions.Items.Add(new DefinitionItem(null, "Custom parameters"));
+            comboDefinitions.Items.Clear();
+            comboDefinitions.Items.Add(new DefinitionItem(null, "Custom parameters"));
 
             foreach (ObjectParameterDefinitionSet definitionSet in ObjectParameterProviderRegistry.GetDefinitionSets(_context))
-                _comboDefinitions.Items.Add(new DefinitionItem(definitionSet, definitionSet.Name));
+                comboDefinitions.Items.Add(new DefinitionItem(definitionSet, definitionSet.Name));
 
-            _comboDefinitions.SelectedIndex = 0;
+            comboDefinitions.SelectedIndex = 0;
             LoadPresets(null);
             _isLoading = false;
         }
@@ -207,9 +72,9 @@ namespace TombEditor.Forms
             {
                 SelectDefinition(valueSet.ProviderId, valueSet.DefinitionSetId);
 
-                _textProviderId.Text = valueSet.ProviderId;
-                _textDefinitionSetId.Text = valueSet.DefinitionSetId;
-                _textPresetId.Text = valueSet.PresetId;
+                textProviderId.Text = valueSet.ProviderId;
+                textDefinitionSetId.Text = valueSet.DefinitionSetId;
+                textPresetId.Text = valueSet.PresetId;
 
                 foreach (ObjectParameterValue value in valueSet.Values)
                     AddOrUpdateValueRow(value.ParameterId, value.Value, FindParameterDefinition(value.ParameterId));
@@ -222,34 +87,34 @@ namespace TombEditor.Forms
 
         private void LoadPresets(ObjectParameterDefinitionSet definitionSet)
         {
-            _comboPresets.Items.Clear();
-            _comboPresets.Items.Add(new PresetItem(null, "No preset"));
+            comboPresets.Items.Clear();
+            comboPresets.Items.Add(new PresetItem(null, "No preset"));
 
             if (definitionSet != null)
                 foreach (ObjectParameterPreset preset in definitionSet.Presets)
-                    _comboPresets.Items.Add(new PresetItem(preset, preset.Name));
+                    comboPresets.Items.Add(new PresetItem(preset, preset.Name));
 
-            _comboPresets.SelectedIndex = 0;
+            comboPresets.SelectedIndex = 0;
         }
 
         private void SelectDefinition(string providerId, string definitionSetId)
         {
-            for (int i = 0; i < _comboDefinitions.Items.Count; i++)
+            for (int i = 0; i < comboDefinitions.Items.Count; i++)
             {
-                var item = _comboDefinitions.Items[i] as DefinitionItem;
+                var item = comboDefinitions.Items[i] as DefinitionItem;
                 if (item?.DefinitionSet == null)
                     continue;
 
                 if (string.Equals(item.DefinitionSet.ProviderId, providerId, StringComparison.OrdinalIgnoreCase) &&
                     string.Equals(item.DefinitionSet.Id, definitionSetId, StringComparison.OrdinalIgnoreCase))
                 {
-                    _comboDefinitions.SelectedIndex = i;
+                    comboDefinitions.SelectedIndex = i;
                     LoadPresets(item.DefinitionSet);
                     return;
                 }
             }
 
-            _comboDefinitions.SelectedIndex = 0;
+            comboDefinitions.SelectedIndex = 0;
             LoadPresets(null);
         }
 
@@ -257,16 +122,16 @@ namespace TombEditor.Forms
         {
             if (string.IsNullOrEmpty(presetId))
             {
-                _comboPresets.SelectedIndex = 0;
+                comboPresets.SelectedIndex = 0;
                 return;
             }
 
-            for (int i = 0; i < _comboPresets.Items.Count; i++)
+            for (int i = 0; i < comboPresets.Items.Count; i++)
             {
-                var item = _comboPresets.Items[i] as PresetItem;
+                var item = comboPresets.Items[i] as PresetItem;
                 if (item?.Preset != null && string.Equals(item.Preset.Id, presetId, StringComparison.OrdinalIgnoreCase))
                 {
-                    _comboPresets.SelectedIndex = i;
+                    comboPresets.SelectedIndex = i;
                     return;
                 }
             }
@@ -276,7 +141,7 @@ namespace TombEditor.Forms
         {
             get
             {
-                var item = _comboDefinitions.SelectedItem as DefinitionItem;
+                var item = comboDefinitions.SelectedItem as DefinitionItem;
                 return item?.DefinitionSet;
             }
         }
@@ -288,8 +153,8 @@ namespace TombEditor.Forms
 
             ObjectParameterDefinitionSet definitionSet = SelectedDefinitionSet;
 
-            _textProviderId.Text = definitionSet?.ProviderId ?? string.Empty;
-            _textDefinitionSetId.Text = definitionSet?.Id ?? string.Empty;
+            textProviderId.Text = definitionSet?.ProviderId ?? string.Empty;
+            textDefinitionSetId.Text = definitionSet?.Id ?? string.Empty;
             LoadPresets(definitionSet);
 
             if (definitionSet != null && GetValueRowCount() == 0)
@@ -303,9 +168,9 @@ namespace TombEditor.Forms
             if (_isLoading)
                 return;
 
-            var item = _comboPresets.SelectedItem as PresetItem;
+            var item = comboPresets.SelectedItem as PresetItem;
             ObjectParameterPreset preset = item?.Preset;
-            _textPresetId.Text = preset?.Id ?? string.Empty;
+            textPresetId.Text = preset?.Id ?? string.Empty;
 
             if (preset != null)
                 ApplyPreset(preset);
@@ -319,14 +184,14 @@ namespace TombEditor.Forms
         private void butHelp_Click(object sender, EventArgs e)
         {
             _showHelp = !_showHelp;
-            _butHelp.Text = _showHelp ? "Hilfe ausblenden" : "Hilfe einblenden";
+            butHelp.Text = _showHelp ? "Hide help" : "Show help";
             UpdateHelpPanel();
         }
 
         private int GetValueRowCount()
         {
             int count = 0;
-            foreach (DataGridViewRow row in _gridValues.Rows)
+            foreach (DataGridViewRow row in gridValues.Rows)
                 if (!row.IsNewRow)
                     count++;
             return count;
@@ -334,7 +199,7 @@ namespace TombEditor.Forms
 
         private void LoadDefaultValues(ObjectParameterDefinitionSet definitionSet)
         {
-            _gridValues.Rows.Clear();
+            gridValues.Rows.Clear();
 
             foreach (ObjectParameterGroup group in definitionSet.Groups)
                 foreach (ObjectParameterDefinition parameter in group.Parameters)
@@ -362,7 +227,7 @@ namespace TombEditor.Forms
             string unit = parameter?.Unit ?? string.Empty;
             string example = parameter?.Example ?? string.Empty;
 
-            foreach (DataGridViewRow row in _gridValues.Rows)
+            foreach (DataGridViewRow row in gridValues.Rows)
             {
                 if (row.IsNewRow)
                     continue;
@@ -379,7 +244,7 @@ namespace TombEditor.Forms
                 }
             }
 
-            _gridValues.Rows.Add(parameterId, name, description, value, unit, example);
+            gridValues.Rows.Add(parameterId, name, description, value, unit, example);
         }
 
         private void ApplyPreset(ObjectParameterPreset preset)
@@ -390,14 +255,14 @@ namespace TombEditor.Forms
 
         private void UpdateHelpPanel()
         {
-            _labelHelp.Visible = _showHelp;
+            labelHelp.Visible = _showHelp;
             if (!_showHelp)
                 return;
 
-            DataGridViewRow row = _gridValues.CurrentRow;
+            DataGridViewRow row = gridValues.CurrentRow;
             if (row == null || row.IsNewRow)
             {
-                _labelHelp.Text = "Select a parameter to show help.";
+                labelHelp.Text = "Select a parameter to show help.";
                 return;
             }
 
@@ -405,24 +270,24 @@ namespace TombEditor.Forms
             string example = Convert.ToString(row.Cells["Example"].Value) ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(description) && string.IsNullOrWhiteSpace(example))
-                _labelHelp.Text = "No additional help for this parameter.";
+                labelHelp.Text = "No additional help for this parameter.";
             else if (string.IsNullOrWhiteSpace(example))
-                _labelHelp.Text = description;
+                labelHelp.Text = description;
             else if (string.IsNullOrWhiteSpace(description))
-                _labelHelp.Text = "Example: " + example;
+                labelHelp.Text = "Example: " + example;
             else
-                _labelHelp.Text = description + "  Example: " + example;
+                labelHelp.Text = description + "  Example: " + example;
         }
 
         private void butOk_Click(object sender, EventArgs e)
         {
             ObjectParameterValueSet valueSet = ObjectParameterStorage.GetOrCreate(_instance);
-            valueSet.ProviderId = _textProviderId.Text.Trim();
-            valueSet.DefinitionSetId = _textDefinitionSetId.Text.Trim();
-            valueSet.PresetId = _textPresetId.Text.Trim();
+            valueSet.ProviderId = textProviderId.Text.Trim();
+            valueSet.DefinitionSetId = textDefinitionSetId.Text.Trim();
+            valueSet.PresetId = textPresetId.Text.Trim();
             valueSet.Values.Clear();
 
-            foreach (DataGridViewRow row in _gridValues.Rows)
+            foreach (DataGridViewRow row in gridValues.Rows)
             {
                 if (row.IsNewRow)
                     continue;
@@ -450,6 +315,12 @@ namespace TombEditor.Forms
 
             ObjectParameterStorage.Set(_instance, valueSet);
             DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private void butCancel_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
             Close();
         }
 
