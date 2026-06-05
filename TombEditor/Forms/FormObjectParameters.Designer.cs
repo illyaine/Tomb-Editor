@@ -28,9 +28,6 @@ namespace TombEditor.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             labelObject = new DarkUI.Controls.DarkLabel();
             darkLabel1 = new DarkUI.Controls.DarkLabel();
             comboDefinitions = new DarkUI.Controls.DarkComboBox();
@@ -43,7 +40,7 @@ namespace TombEditor.Forms
             darkLabel5 = new DarkUI.Controls.DarkLabel();
             textPresetId = new DarkUI.Controls.DarkTextBox();
             darkGroupBox1 = new DarkUI.Controls.DarkGroupBox();
-            gridValues = new System.Windows.Forms.DataGridView();
+            gridValues = new DarkUI.Controls.DarkDataGridView();
             butOcbCodes = new DarkUI.Controls.DarkButton();
             butHelp = new DarkUI.Controls.DarkButton();
             labelHelp = new DarkUI.Controls.DarkLabel();
@@ -60,7 +57,7 @@ namespace TombEditor.Forms
             labelObject.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             labelObject.Location = new System.Drawing.Point(10, 9);
             labelObject.Name = "labelObject";
-            labelObject.Size = new System.Drawing.Size(774, 32);
+            labelObject.Size = new System.Drawing.Size(784, 32);
             labelObject.TabIndex = 0;
             // 
             // darkLabel1
@@ -100,7 +97,7 @@ namespace TombEditor.Forms
             comboPresets.FormattingEnabled = true;
             comboPresets.Location = new System.Drawing.Point(613, 48);
             comboPresets.Name = "comboPresets";
-            comboPresets.Size = new System.Drawing.Size(171, 23);
+            comboPresets.Size = new System.Drawing.Size(181, 23);
             comboPresets.TabIndex = 4;
             comboPresets.SelectedIndexChanged += comboPresets_SelectedIndexChanged;
             // 
@@ -170,7 +167,7 @@ namespace TombEditor.Forms
             darkGroupBox1.Controls.Add(gridValues);
             darkGroupBox1.Location = new System.Drawing.Point(10, 82);
             darkGroupBox1.Name = "darkGroupBox1";
-            darkGroupBox1.Size = new System.Drawing.Size(774, 371);
+            darkGroupBox1.Size = new System.Drawing.Size(784, 371);
             darkGroupBox1.TabIndex = 11;
             darkGroupBox1.TabStop = false;
             darkGroupBox1.Text = "Object codes && parameters";
@@ -179,43 +176,26 @@ namespace TombEditor.Forms
             // 
             gridValues.AllowUserToAddRows = false;
             gridValues.AllowUserToDeleteRows = false;
+            gridValues.AllowUserToDragDropRows = false;
+            gridValues.AllowUserToPasteCells = false;
             gridValues.AllowUserToResizeRows = false;
             gridValues.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             gridValues.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            gridValues.BackgroundColor = System.Drawing.Color.FromArgb(37, 37, 37);
-            gridValues.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            gridValues.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(50, 54, 56);
-            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.Color.FromArgb(68, 72, 75);
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            gridValues.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            gridValues.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            gridValues.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.Single;
             gridValues.ColumnHeadersHeight = 24;
             gridValues.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(42, 42, 42);
-            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
-            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.Color.FromArgb(0, 96, 160);
-            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            gridValues.DefaultCellStyle = dataGridViewCellStyle2;
-            gridValues.EnableHeadersVisualStyles = false;
-            gridValues.GridColor = System.Drawing.Color.FromArgb(64, 64, 64);
+            gridValues.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnKeystrokeOrF2;
             gridValues.Location = new System.Drawing.Point(7, 19);
             gridValues.MultiSelect = false;
             gridValues.Name = "gridValues";
-            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(45, 45, 45);
-            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
-            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(0, 96, 160);
-            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.Color.White;
-            gridValues.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle3;
+            gridValues.PreventScrollOnCtrl = false;
             gridValues.RowHeadersVisible = false;
-            gridValues.RowTemplate.Height = 22;
+            gridValues.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             gridValues.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            gridValues.Size = new System.Drawing.Size(761, 346);
+            gridValues.Size = new System.Drawing.Size(771, 346);
             gridValues.TabIndex = 0;
+            gridValues.UseAlternativeDragDropMethod = false;
             gridValues.SelectionChanged += gridValues_SelectionChanged;
             // 
             // butOcbCodes
@@ -259,7 +239,7 @@ namespace TombEditor.Forms
             butCancel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butCancel.Checked = false;
             butCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            butCancel.Location = new System.Drawing.Point(704, 491);
+            butCancel.Location = new System.Drawing.Point(714, 491);
             butCancel.Name = "butCancel";
             butCancel.Size = new System.Drawing.Size(80, 23);
             butCancel.TabIndex = 16;
@@ -271,7 +251,7 @@ namespace TombEditor.Forms
             // 
             butOk.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butOk.Checked = false;
-            butOk.Location = new System.Drawing.Point(618, 491);
+            butOk.Location = new System.Drawing.Point(628, 491);
             butOk.Name = "butOk";
             butOk.Size = new System.Drawing.Size(80, 23);
             butOk.TabIndex = 15;
@@ -285,7 +265,7 @@ namespace TombEditor.Forms
             AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             CancelButton = butCancel;
-            ClientSize = new System.Drawing.Size(794, 522);
+            ClientSize = new System.Drawing.Size(804, 522);
             Controls.Add(butCancel);
             Controls.Add(butOk);
             Controls.Add(labelHelp);
@@ -303,12 +283,14 @@ namespace TombEditor.Forms
             Controls.Add(comboDefinitions);
             Controls.Add(darkLabel1);
             Controls.Add(labelObject);
-            FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
+            FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            MaximizeBox = true;
             MinimizeBox = false;
+            MinimumSize = new System.Drawing.Size(720, 420);
             Name = "FormObjectParameters";
             ShowIcon = false;
             ShowInTaskbar = false;
+            SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             Text = "Object Parameters";
             darkGroupBox1.ResumeLayout(false);
@@ -330,7 +312,7 @@ namespace TombEditor.Forms
         private DarkUI.Controls.DarkLabel darkLabel5;
         private DarkUI.Controls.DarkTextBox textPresetId;
         private DarkUI.Controls.DarkGroupBox darkGroupBox1;
-        private System.Windows.Forms.DataGridView gridValues;
+        private DarkUI.Controls.DarkDataGridView gridValues;
         private DarkUI.Controls.DarkButton butOcbCodes;
         private DarkUI.Controls.DarkButton butHelp;
         private DarkUI.Controls.DarkLabel labelHelp;
