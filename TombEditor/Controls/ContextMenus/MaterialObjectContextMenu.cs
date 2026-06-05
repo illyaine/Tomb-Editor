@@ -1,5 +1,6 @@
-﻿using System.Windows.Forms;
+using System.Windows.Forms;
 using System;
+using TombEditor.Forms;
 using TombLib.LevelData;
 
 namespace TombEditor.Controls.ContextMenus
@@ -40,6 +41,13 @@ namespace TombEditor.Controls.ContextMenus
                     EditorActions.EditObject(targetObject, owner);
                 }));
             }
+
+            Items.Add(new ToolStripMenuItem("Object parameters...", Properties.Resources.general_edit_16, (o, e) =>
+            {
+                using (var form = new FormObjectParameters(targetObject))
+                    if (form.ShowDialog(owner) == DialogResult.OK)
+                        _editor.ObjectChange(targetObject, ObjectChangeType.Change);
+            }));
 
             Items.Add(new ToolStripMenuItem("Copy", Properties.Resources.general_copy_link_16, (o, e) =>
             {
