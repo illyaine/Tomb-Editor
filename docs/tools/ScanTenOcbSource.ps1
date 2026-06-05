@@ -91,7 +91,7 @@ if (!(Test-Path $TombEngineRoot)) {
 }
 
 $allowedExtensions = @(".cpp", ".h", ".hpp", ".inl")
-$sourceFiles = Get-ChildItem -Path $TombEngineRoot -Recurse -File |
+$sourceFiles = @(Get-ChildItem -Path $TombEngineRoot -Recurse -File |
     Where-Object {
         $allowedExtensions -contains $_.Extension.ToLowerInvariant()
     } |
@@ -102,7 +102,7 @@ $sourceFiles = Get-ChildItem -Path $TombEngineRoot -Recurse -File |
         ($relativePath -ieq "Game\items.cpp") -or
         ($relativePath -ieq "Game\items.h")
     } |
-    Sort-Object FullName
+    Sort-Object FullName)
 
 $patterns = @(
     "TriggerFlags",
@@ -121,7 +121,7 @@ $findings = New-Object System.Collections.Generic.List[object]
 
 foreach ($file in $sourceFiles) {
     $relativePath = Get-RelativePath -BasePath $TombEngineRoot -FullPath $file.FullName
-    $lines = Get-Content -Path $file.FullName
+    $lines = @(Get-Content -Path $file.FullName)
 
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
@@ -179,7 +179,7 @@ Add-Line -Lines $outputLines -Text ""
 Add-Line -Lines $outputLines -Text "| Group | Matches |"
 Add-Line -Lines $outputLines -Text "| --- | ---: |"
 
-$groups = $findings | Group-Object Group | Sort-Object Name
+$groups = @($findings | Group-Object Group | Sort-Object Name)
 foreach ($group in $groups) {
     Add-Line -Lines $outputLines -Text ("| " + $group.Name + " | " + $group.Count + " |")
 }
@@ -192,7 +192,7 @@ foreach ($group in $groups) {
     Add-Line -Lines $outputLines -Text ("### " + $group.Name)
     Add-Line -Lines $outputLines -Text ""
 
-    $entries = $group.Group | Sort-Object File, Line
+    $entries = @($group.Group | Sort-Object File, Line)
     foreach ($entry in $entries) {
         Add-Line -Lines $outputLines -Text ("#### " + $entry.File + ":" + $entry.Line)
         Add-Line -Lines $outputLines -Text ("Kind: " + $entry.Kind)
