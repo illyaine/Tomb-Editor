@@ -1,3 +1,5 @@
+using TombLib.LevelData;
+
 namespace TombLib.LevelData.ObjectParameters
 {
     public static class ObjectParameterContextFactory
