@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TombLib.Wad.Catalog;
 
 namespace TombLib.LevelData.ObjectParameters
 {
