@@ -54,6 +54,7 @@ function Get-MatchKind {
     if ($Line -match "TriggerFlags\s*(&|\|)") { return "TriggerFlags bitwise" }
     if ($Line -match "TriggerFlags\s*(==|!=|<=|>=|<|>)") { return "TriggerFlags comparison" }
     if ($Line -match "switch\s*\([^\)]*TriggerFlags") { return "TriggerFlags switch" }
+    if ($Line -match "\b[A-Za-z0-9_]*OCB[A-Za-z0-9_]*\b") { return "OCB symbol/comment" }
     if ($Line -match "case\s+[-]?[0-9]+\s*:") { return "Numeric case" }
     if ($Line -match "ItemFlags|GetFlagField|TestFlagField|SetFlagField|ClearFlags") { return "ItemFlags related" }
 
@@ -108,6 +109,7 @@ $patterns = @(
     "TestOcb\s*\(",
     "RemoveOcb\s*\(",
     "ClearAllOcb\s*\(",
+    "\b[A-Za-z0-9_]*OCB[A-Za-z0-9_]*\b",
     "ItemFlags",
     "GetFlagField\s*\(",
     "TestFlagField\s*\(",
