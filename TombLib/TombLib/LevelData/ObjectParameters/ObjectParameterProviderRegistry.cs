@@ -24,12 +24,6 @@ namespace TombLib.LevelData.ObjectParameters
             _providers.Add(provider);
         }
 
-        public static void RegisterDefaults()
-        {
-            if (!_providers.Any(provider => string.Equals(provider.Id, TenAtmosphereObjectParameterProvider.ProviderId, StringComparison.OrdinalIgnoreCase)))
-                Register(new TenAtmosphereObjectParameterProvider());
-        }
-
         public static void Unregister(string providerId)
         {
             if (string.IsNullOrWhiteSpace(providerId))
@@ -38,10 +32,13 @@ namespace TombLib.LevelData.ObjectParameters
             _providers.RemoveAll(provider => string.Equals(provider.Id, providerId, StringComparison.OrdinalIgnoreCase));
         }
 
+        public static void Clear()
+        {
+            _providers.Clear();
+        }
+
         public static IEnumerable<ObjectParameterDefinitionSet> GetDefinitionSets(ObjectParameterContext context)
         {
-            RegisterDefaults();
-
             foreach (IObjectParameterProvider provider in _providers)
                 foreach (ObjectParameterDefinitionSet definitionSet in provider.GetDefinitionSets(context) ?? Enumerable.Empty<ObjectParameterDefinitionSet>())
                     yield return definitionSet;
@@ -49,8 +46,6 @@ namespace TombLib.LevelData.ObjectParameters
 
         public static IEnumerable<ObjectParameterValidationMessage> Validate(ObjectParameterContext context, ObjectParameterValueSet valueSet)
         {
-            RegisterDefaults();
-
             foreach (IObjectParameterProvider provider in _providers)
                 foreach (ObjectParameterValidationMessage message in provider.Validate(context, valueSet) ?? Enumerable.Empty<ObjectParameterValidationMessage>())
                     yield return message;
