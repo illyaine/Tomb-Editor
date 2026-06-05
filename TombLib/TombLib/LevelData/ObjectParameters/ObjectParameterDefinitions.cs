@@ -61,6 +61,7 @@ namespace TombLib.LevelData.ObjectParameters
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string Example { get; set; } = string.Empty;
         public ObjectParameterType Type { get; set; } = ObjectParameterType.String;
         public string DefaultValue { get; set; } = string.Empty;
         public string MinimumValue { get; set; } = string.Empty;
