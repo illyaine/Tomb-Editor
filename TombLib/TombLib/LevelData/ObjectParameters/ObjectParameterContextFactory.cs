@@ -9,7 +9,7 @@ namespace TombLib.LevelData.ObjectParameters
             var context = new ObjectParameterContext
             {
                 GameVersion = level != null ? level.Settings.GameVersion : default,
-                EngineId = level != null && level.IsTombEngine ? "TombEngine" : string.Empty,
+                EngineId = level != null ? level.Settings.GameVersion.ToString() : string.Empty,
                 ObjectTypeId = instance != null ? instance.GetType().Name : string.Empty
             };
 
