@@ -43,7 +43,7 @@ namespace TombEditor.Controls.ContextMenus
                 }));
             }
 
-            if (ObjectParameterSupport.IsSupported(_editor.Level))
+            if (ObjectParameterSupport.IsSupported(_editor.Level, targetObject))
             {
                 Items.Add(new ToolStripMenuItem("Object parameters...", Properties.Resources.general_edit_16, (o, e) =>
                 {
