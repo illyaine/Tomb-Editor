@@ -1,5 +1,3 @@
-using TombLib.Wad.Catalog;
-
 namespace TombLib.LevelData.ObjectParameters
 {
     public static class ObjectParameterContextFactory
@@ -8,7 +6,7 @@ namespace TombLib.LevelData.ObjectParameters
         {
             var context = new ObjectParameterContext
             {
-                GameVersion = level != null ? level.Settings.GameVersion : TRVersion.Game.TRNG,
+                GameVersion = level != null ? level.Settings.GameVersion : default,
                 EngineId = level != null && level.IsTombEngine ? "TombEngine" : string.Empty,
                 ObjectTypeId = instance != null ? instance.GetType().Name : string.Empty
             };
