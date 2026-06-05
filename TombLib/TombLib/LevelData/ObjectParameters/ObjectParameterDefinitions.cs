@@ -33,17 +33,27 @@ namespace TombLib.LevelData.ObjectParameters
         Diagnostics
     }
 
+    public enum ObjectParameterOcbMode
+    {
+        FixedValue,
+        AdditiveFlags,
+        Mixed
+    }
+
     public sealed class ObjectParameterDefinitionSet
     {
         public string Id { get; set; } = string.Empty;
         public string ProviderId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public ObjectParameterSource Source { get; set; } = ObjectParameterSource.Custom;
+        public ObjectParameterMappingStatus MappingStatus { get; set; } = ObjectParameterMappingStatus.Mapped;
         public string ObjectTypeId { get; set; } = string.Empty;
         public int? SlotId { get; set; }
         public List<ObjectParameterGroup> Groups { get; set; } = new List<ObjectParameterGroup>();
         public List<ObjectParameterPreset> Presets { get; set; } = new List<ObjectParameterPreset>();
         public List<ObjectParameterExportTarget> ExportTargets { get; set; } = new List<ObjectParameterExportTarget>();
+        public List<ObjectParameterOcbDefinition> OcbDefinitions { get; set; } = new List<ObjectParameterOcbDefinition>();
     }
 
     public sealed class ObjectParameterGroup
@@ -63,6 +73,8 @@ namespace TombLib.LevelData.ObjectParameters
         public string Description { get; set; } = string.Empty;
         public string Example { get; set; } = string.Empty;
         public ObjectParameterType Type { get; set; } = ObjectParameterType.String;
+        public ObjectParameterSource Source { get; set; } = ObjectParameterSource.Custom;
+        public ObjectParameterMappingStatus MappingStatus { get; set; } = ObjectParameterMappingStatus.Mapped;
         public string DefaultValue { get; set; } = string.Empty;
         public string MinimumValue { get; set; } = string.Empty;
         public string MaximumValue { get; set; } = string.Empty;
@@ -78,5 +90,18 @@ namespace TombLib.LevelData.ObjectParameters
         public string Value { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+    }
+
+    public sealed class ObjectParameterOcbDefinition
+    {
+        public short Value { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Group { get; set; } = string.Empty;
+        public string Example { get; set; } = string.Empty;
+        public bool IsCombinable { get; set; }
+        public ObjectParameterOcbMode Mode { get; set; } = ObjectParameterOcbMode.FixedValue;
+        public ObjectParameterMappingStatus MappingStatus { get; set; } = ObjectParameterMappingStatus.Mapped;
+        public string Warning { get; set; } = string.Empty;
     }
 }
