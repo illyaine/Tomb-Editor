@@ -1,9 +1,11 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$TombEngineRoot,
+    [Parameter(Mandatory = $false)]
+    [string]$TombEngineRoot = "E:\00GitHub\TombEngine",
 
-    [string]$OutputPath = "docs/status/TEN_Object_OCB_SourceScan_Generated.md",
+    [Parameter(Mandatory = $false)]
+    [string]$OutputPath = "E:\00GitHub\Tomb-Editor\docs\status\TEN_Object_OCB_SourceScan_Generated.md",
 
+    [Parameter(Mandatory = $false)]
     [int]$ContextLines = 3
 )
 
@@ -18,9 +20,12 @@ function Get-RelativePath {
 
     $basePathResolved = (Resolve-Path $BasePath).Path.TrimEnd([System.IO.Path]::DirectorySeparatorChar)
     $filePathResolved = (Resolve-Path $FullPath).Path
-    $baseUri = [System.Uri]($basePathResolved + [System.IO.Path]::DirectorySeparatorChar)
-    $fileUri = [System.Uri]($filePathResolved)
-    return [System.Uri]::UnescapeDataString($baseUri.MakeRelativeUri($fileUri).ToString()).Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+
+    if ($filePathResolved.StartsWith($basePathResolved)) {
+        return $filePathResolved.Substring($basePathResolved.Length).TrimStart('\', '/')
+    }
+
+    return $filePathResolved
 }
 
 function Get-SourceGroup {
@@ -28,14 +33,14 @@ function Get-SourceGroup {
 
     $path = $RelativePath.Replace('/', '\')
 
-    if ($path -match "Objects\\TR1\\") { return "TR1" }
-    if ($path -match "Objects\\TR2\\") { return "TR2" }
-    if ($path -match "Objects\\TR3\\") { return "TR3" }
-    if ($path -match "Objects\\TR4\\") { return "TR4" }
-    if ($path -match "Objects\\TR5\\") { return "TR5" }
-    if ($path -match "Objects\\Effects\\") { return "Effects / Emitters" }
-    if ($path -match "Objects\\Generic\\") { return "Generic" }
-    if ($path -match "Game\\") { return "Core" }
+    if ($path -like "Objects\TR1\*") { return "TR1" }
+    if ($path -like "Objects\TR2\*") { return "TR2" }
+    if ($path -like "Objects\TR3\*") { return "TR3" }
+    if ($path -like "Objects\TR4\*") { return "TR4" }
+    if ($path -like "Objects\TR5\*") { return "TR5" }
+    if ($path -like "Objects\Effects\*") { return "Effects / Emitters" }
+    if ($path -like "Objects\Generic\*") { return "Generic" }
+    if ($path -like "Game\*") { return "Core" }
 
     return "Other"
 }
@@ -61,17 +66,40 @@ function Get-NumericEvidence {
     $matches = [regex]::Matches($Line, "(?<![A-Za-z0-9_])-?\d+(?![A-Za-z0-9_])")
     if ($matches.Count -eq 0) { return "" }
 
-    return (($matches | ForEach-Object { $_.Value }) | Select-Object -Unique) -join ", "
+    $values = New-Object System.Collections.Generic.List[string]
+    foreach ($match in $matches) {
+        if (!$values.Contains($match.Value)) {
+            $values.Add($match.Value)
+        }
+    }
+
+    return [string]::Join(", ", $values.ToArray())
+}
+
+function Add-Line {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [string]$Text
+    )
+
+    $Lines.Add($Text)
 }
 
 if (!(Test-Path $TombEngineRoot)) {
     throw "TombEngineRoot does not exist: $TombEngineRoot"
 }
 
-$sourceFiles = Get-ChildItem -Path $TombEngineRoot -Recurse -File -Include *.cpp,*.h,*.hpp,*.inl |
+$allowedExtensions = @(".cpp", ".h", ".hpp", ".inl")
+$sourceFiles = Get-ChildItem -Path $TombEngineRoot -Recurse -File |
     Where-Object {
-        $_.FullName -match "[\\/]TombEngine[\\/]" -and
-        ($_.FullName -match "[\\/]Objects[\\/]" -or $_.FullName -match "[\\/]Game[\\/]items\.(cpp|h)$")
+        $allowedExtensions -contains $_.Extension.ToLowerInvariant()
+    } |
+    Where-Object {
+        $relative = Get-RelativePath -BasePath $TombEngineRoot -FullPath $_.FullName
+        $relativePath = $relative.Replace('/', '\')
+        ($relativePath -like "Objects\*") -or
+        ($relativePath -ieq "Game\items.cpp") -or
+        ($relativePath -ieq "Game\items.h")
     } |
     Sort-Object FullName
 
@@ -110,62 +138,72 @@ foreach ($file in $sourceFiles) {
 
         $start = [Math]::Max(0, $i - $ContextLines)
         $end = [Math]::Min($lines.Count - 1, $i + $ContextLines)
-        $context = New-Object System.Collections.Generic.List[string]
+        $contextLines = New-Object System.Collections.Generic.List[string]
 
         for ($j = $start; $j -le $end; $j++) {
-            $prefix = if ($j -eq $i) { ">" } else { " " }
-            $context.Add(("{0}{1}: {2}" -f $prefix, ($j + 1), $lines[$j].TrimEnd()))
+            $prefix = " "
+            if ($j -eq $i) {
+                $prefix = ">"
+            }
+
+            $lineNumber = $j + 1
+            $contextLines.Add(($prefix + $lineNumber + ": " + $lines[$j].TrimEnd()))
         }
 
-        $findings.Add([pscustomobject]@{
-            Group = Get-SourceGroup -RelativePath $relativePath
-            File = $relativePath
-            Line = $i + 1
-            Kind = Get-MatchKind -Line $line
-            NumericEvidence = Get-NumericEvidence -Line $line
-            Code = $line.Trim()
-            Context = ($context -join [Environment]::NewLine)
-        })
+        $finding = New-Object PSObject
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name Group -Value (Get-SourceGroup -RelativePath $relativePath)
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name File -Value $relativePath
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name Line -Value ($i + 1)
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name Kind -Value (Get-MatchKind -Line $line)
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name NumericEvidence -Value (Get-NumericEvidence -Line $line)
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name Code -Value $line.Trim()
+        Add-Member -InputObject $finding -MemberType NoteProperty -Name Context -Value ([string]::Join([Environment]::NewLine, $contextLines.ToArray()))
+        $findings.Add($finding)
     }
 }
 
-$builder = New-Object System.Text.StringBuilder
-[void]$builder.AppendLine("# TEN Object OCB Source Scan - Generated")
-[void]$builder.AppendLine("")
-[void]$builder.AppendLine("Generated by docs/tools/ScanTenOcbSource.ps1.")
-[void]$builder.AppendLine("")
-[void]$builder.AppendLine("This report is source evidence only. It does not assign final meanings automatically.")
-[void]$builder.AppendLine("")
-[void]$builder.AppendLine("## Summary")
-[void]$builder.AppendLine("")
-[void]$builder.AppendLine("| Group | Matches |")
-[void]$builder.AppendLine("| --- | ---: |")
+$outputLines = New-Object System.Collections.Generic.List[string]
+Add-Line -Lines $outputLines -Text "# TEN Object OCB Source Scan - Generated"
+Add-Line -Lines $outputLines -Text ""
+Add-Line -Lines $outputLines -Text "Generated by docs/tools/ScanTenOcbSource.ps1."
+Add-Line -Lines $outputLines -Text "This report is source evidence only. It does not assign final meanings automatically."
+Add-Line -Lines $outputLines -Text ""
+Add-Line -Lines $outputLines -Text "TombEngine root: $TombEngineRoot"
+Add-Line -Lines $outputLines -Text "Source files scanned: $($sourceFiles.Count)"
+Add-Line -Lines $outputLines -Text "Findings: $($findings.Count)"
+Add-Line -Lines $outputLines -Text ""
+Add-Line -Lines $outputLines -Text "## Summary"
+Add-Line -Lines $outputLines -Text ""
+Add-Line -Lines $outputLines -Text "| Group | Matches |"
+Add-Line -Lines $outputLines -Text "| --- | ---: |"
 
-$findings | Group-Object Group | Sort-Object Name | ForEach-Object {
-    [void]$builder.AppendLine(("| {0} | {1} |" -f $_.Name, $_.Count))
+$groups = $findings | Group-Object Group | Sort-Object Name
+foreach ($group in $groups) {
+    Add-Line -Lines $outputLines -Text ("| " + $group.Name + " | " + $group.Count + " |")
 }
 
-[void]$builder.AppendLine("")
-[void]$builder.AppendLine("## Findings")
-[void]$builder.AppendLine("")
+Add-Line -Lines $outputLines -Text ""
+Add-Line -Lines $outputLines -Text "## Findings"
+Add-Line -Lines $outputLines -Text ""
 
-foreach ($group in ($findings | Group-Object Group | Sort-Object Name)) {
-    [void]$builder.AppendLine(("### {0}" -f $group.Name))
-    [void]$builder.AppendLine("")
+foreach ($group in $groups) {
+    Add-Line -Lines $outputLines -Text ("### " + $group.Name)
+    Add-Line -Lines $outputLines -Text ""
 
-    foreach ($entry in ($group.Group | Sort-Object File, Line)) {
-        [void]$builder.AppendLine(("#### {0}:{1}" -f $entry.File, $entry.Line))
-        [void]$builder.AppendLine("")
-        [void]$builder.AppendLine(("Kind: {0}" -f $entry.Kind))
+    $entries = $group.Group | Sort-Object File, Line
+    foreach ($entry in $entries) {
+        Add-Line -Lines $outputLines -Text ("#### " + $entry.File + ":" + $entry.Line)
+        Add-Line -Lines $outputLines -Text ("Kind: " + $entry.Kind)
+
         if (![string]::IsNullOrWhiteSpace($entry.NumericEvidence)) {
-            [void]$builder.AppendLine(("Numeric evidence: {0}" -f $entry.NumericEvidence))
+            Add-Line -Lines $outputLines -Text ("Numeric evidence: " + $entry.NumericEvidence)
         }
-        [void]$builder.AppendLine(("Code: {0}" -f $entry.Code))
-        [void]$builder.AppendLine("")
-        [void]$builder.AppendLine("~~~cpp")
-        [void]$builder.AppendLine($entry.Context)
-        [void]$builder.AppendLine("~~~")
-        [void]$builder.AppendLine("")
+
+        Add-Line -Lines $outputLines -Text ("Code: " + $entry.Code)
+        Add-Line -Lines $outputLines -Text ""
+        Add-Line -Lines $outputLines -Text "Source context:"
+        Add-Line -Lines $outputLines -Text $entry.Context
+        Add-Line -Lines $outputLines -Text ""
     }
 }
 
@@ -174,5 +212,5 @@ if (![string]::IsNullOrWhiteSpace($outputDirectory) -and !(Test-Path $outputDire
     New-Item -ItemType Directory -Path $outputDirectory | Out-Null
 }
 
-$builder.ToString() | Set-Content -Path $OutputPath -Encoding UTF8
-Write-Host ("Wrote {0} findings to {1}" -f $findings.Count, $OutputPath)
+Set-Content -Path $OutputPath -Value $outputLines.ToArray() -Encoding UTF8
+Write-Host ("Wrote " + $findings.Count + " findings to " + $OutputPath)
