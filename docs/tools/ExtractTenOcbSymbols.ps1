@@ -9,7 +9,6 @@ param(
     [string]$OutputMarkdownPath = "E:\00GitHub\Tomb-Editor\docs\status\TEN_Object_OCB_SymbolCatalog_Generated.md"
 )
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 function Get-RelativePath {
@@ -67,6 +66,16 @@ function Remove-LineComment {
     return $Text
 }
 
+function Remove-IntegerSuffix {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return ""
+    }
+
+    return ($Text -replace "[uUlL]+$", "")
+}
+
 function Convert-SimpleIntExpression {
     param(
         [string]$Expression,
@@ -78,29 +87,32 @@ function Convert-SimpleIntExpression {
     }
 
     $expr = Remove-LineComment -Text $Expression
-    $expr = $expr.Trim().TrimEnd(',').TrimEnd(';').Trim()
+    $expr = $expr.Trim()
+    $expr = $expr.TrimEnd(',')
+    $expr = $expr.TrimEnd(';')
+    $expr = $expr.Trim()
     $expr = $expr -replace "\b(short|int|unsigned|signed|long|auto|constexpr|const|static)\b", ""
     $expr = $expr -replace "\s+", " "
     $expr = $expr.Trim()
 
-    while ($expr.StartsWith("(") -and $expr.EndsWith(")")) {
+    while ($expr.StartsWith("(") -and $expr.EndsWith(")") -and $expr.Length -gt 1) {
         $expr = $expr.Substring(1, $expr.Length - 2).Trim()
     }
 
-    if ($KnownValues.ContainsKey($expr)) {
+    if (![string]::IsNullOrWhiteSpace($expr) -and $KnownValues.ContainsKey($expr)) {
         return $KnownValues[$expr]
     }
 
     if ($expr -match "^-?0x[0-9A-Fa-f]+[uUlL]*$") {
         $negative = $expr.StartsWith("-")
-        $hex = $expr.TrimStart('-').TrimEnd('u', 'U', 'l', 'L')
+        $hex = Remove-IntegerSuffix -Text $expr.TrimStart('-')
         $value = [Convert]::ToInt64($hex, 16)
         if ($negative) { return -$value }
         return $value
     }
 
     if ($expr -match "^-?\d+[uUlL]*$") {
-        return [Int64]($expr.TrimEnd('u', 'U', 'l', 'L'))
+        return [Int64](Remove-IntegerSuffix -Text $expr)
     }
 
     if ($expr -match "^\(?\s*(?<left>-?(0x[0-9A-Fa-f]+|\d+))\s*<<\s*(?<shift>\d+)\s*\)?$") {
@@ -149,7 +161,7 @@ function Test-RelevantSymbol {
 
 function Add-SymbolEntry {
     param(
-        [System.Collections.Generic.List[object]]$Entries,
+        [System.Collections.ArrayList]$Entries,
         [string]$Kind,
         [string]$Symbol,
         [string]$Owner,
@@ -166,18 +178,33 @@ function Add-SymbolEntry {
         return
     }
 
-    $entry = New-Object PSObject
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Kind -Value $Kind
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Symbol -Value $Symbol
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Owner -Value $Owner
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Value -Value $Value
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name ValueExpression -Value $ValueExpression
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name File -Value $File
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Line -Value $Line
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Group -Value $Group
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Code -Value $Code.Trim()
-    Add-Member -InputObject $entry -MemberType NoteProperty -Name Confidence -Value $Confidence
-    $Entries.Add($entry)
+    if ($null -eq $Owner) { $Owner = "" }
+    if ($null -eq $ValueExpression) { $ValueExpression = "" }
+    if ($null -eq $Code) { $Code = "" }
+
+    $entry = [pscustomobject]@{
+        Kind = $Kind
+        Symbol = $Symbol
+        Owner = $Owner
+        Value = $Value
+        ValueExpression = $ValueExpression
+        File = $File
+        Line = $Line
+        Group = $Group
+        Code = $Code.Trim()
+        Confidence = $Confidence
+    }
+
+    [void]$Entries.Add($entry)
+}
+
+function Add-Line {
+    param(
+        [System.Collections.ArrayList]$Lines,
+        [string]$Text
+    )
+
+    [void]$Lines.Add($Text)
 }
 
 if (!(Test-Path $TombEngineRoot)) {
@@ -196,8 +223,9 @@ $sourceFiles = @(Get-ChildItem -Path $TombEngineRoot -Recurse -File |
     Sort-Object FullName)
 
 $knownValues = @{}
-$entries = New-Object System.Collections.Generic.List[object]
+$entries = New-Object System.Collections.ArrayList
 $identifierPattern = "\b([A-Za-z_][A-Za-z0-9_]*(?:OCB[A-Za-z0-9_]*)|SWT_[A-Za-z0-9_]+|SophiaOCB|PulleyFlags)\b"
+$definitionPattern = "(?<symbol>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?<expr>[^,;]+)"
 
 foreach ($file in $sourceFiles) {
     $relativePath = Get-RelativePath -BasePath $TombEngineRoot -FullPath $file.FullName
@@ -212,96 +240,111 @@ foreach ($file in $sourceFiles) {
     for ($i = 0; $i -lt $fileLines.Count; $i++) {
         $lineNumber = $i + 1
         $line = $fileLines[$i]
-        $codeNoComment = Remove-LineComment -Text $line
-        $trimmed = $codeNoComment.Trim()
 
-        if (!$insideEnum -and $trimmed -match "^enum(\s+class)?\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)") {
-            $insideEnum = $true
-            $enumName = $Matches["name"]
-            $enumBraceDepth = 0
-            $lastEnumValue = $null
-        }
+        try {
+            $codeNoComment = Remove-LineComment -Text $line
+            $trimmed = $codeNoComment.Trim()
 
-        if ($insideEnum) {
-            $enumBraceDepth += ([regex]::Matches($line, "\{")).Count
-            $enumBraceDepth -= ([regex]::Matches($line, "\}")).Count
-
-            if ($trimmed -match "^(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*(=\s*(?<expr>[^,]+))?\s*,?") {
-                $entryName = $Matches["name"]
-                $expr = ""
-                if ($Matches.ContainsKey("expr")) {
-                    $expr = $Matches["expr"].Trim()
-                }
-
-                $isRelevant = (Test-RelevantSymbol -Symbol $entryName) -or (Test-RelevantSymbol -Symbol $enumName)
-                if ($isRelevant) {
-                    $value = $null
-                    if (![string]::IsNullOrWhiteSpace($expr)) {
-                        $value = Convert-SimpleIntExpression -Expression $expr -KnownValues $knownValues
-                        if ($value -ne $null) {
-                            $lastEnumValue = [Int64]$value
-                        }
-                    }
-                    else {
-                        if ($lastEnumValue -eq $null) {
-                            $value = 0
-                        }
-                        else {
-                            $value = [Int64]$lastEnumValue + 1
-                        }
-                        $lastEnumValue = [Int64]$value
-                    }
-
-                    if ($value -ne $null -and !$knownValues.ContainsKey($entryName)) {
-                        $knownValues[$entryName] = $value
-                    }
-
-                    Add-SymbolEntry -Entries $entries -Kind "enum-member" -Symbol $entryName -Owner $enumName -Value $value -ValueExpression $expr -File $relativePath -Line $lineNumber -Group $group -Code $line -Confidence "source-symbol"
-                }
-            }
-
-            if ($enumBraceDepth -le 0 -and $line -match "\}") {
-                $insideEnum = $false
-                $enumName = ""
+            if (!$insideEnum -and $trimmed -match "^enum(\s+class)?\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)") {
+                $insideEnum = $true
+                $enumName = $Matches["name"]
+                $enumBraceDepth = 0
                 $lastEnumValue = $null
             }
-        }
 
-        $definitionPattern = "(?<symbol>[A-Za-z_][A-Za-z0-9_]*(?:OCB[A-Za-z0-9_]*|SWT_[A-Za-z0-9_]*))\s*=\s*(?<expr>[^,;]+)"
-        foreach ($definitionMatch in [regex]::Matches($codeNoComment, $definitionPattern)) {
-            $symbol = $definitionMatch.Groups["symbol"].Value
-            $expr = $definitionMatch.Groups["expr"].Value.Trim()
-            if (Test-RelevantSymbol -Symbol $symbol) {
-                $value = Convert-SimpleIntExpression -Expression $expr -KnownValues $knownValues
-                if ($value -ne $null -and !$knownValues.ContainsKey($symbol)) {
-                    $knownValues[$symbol] = $value
+            if ($insideEnum) {
+                $enumBraceDepth += ([regex]::Matches($line, "\{")).Count
+                $enumBraceDepth -= ([regex]::Matches($line, "\}")).Count
+
+                if (!$trimmed.StartsWith("enum") -and !$trimmed.StartsWith("{") -and !$trimmed.StartsWith("}")) {
+                    if ($trimmed -match "^(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*(=\s*(?<expr>[^,]+))?\s*,?") {
+                        $entryName = $Matches["name"]
+                        $expr = ""
+                        if ($Matches.ContainsKey("expr")) {
+                            $expr = $Matches["expr"].Trim()
+                        }
+
+                        $isRelevant = (Test-RelevantSymbol -Symbol $entryName) -or (Test-RelevantSymbol -Symbol $enumName)
+                        if ($isRelevant) {
+                            $value = $null
+                            if (![string]::IsNullOrWhiteSpace($expr)) {
+                                $value = Convert-SimpleIntExpression -Expression $expr -KnownValues $knownValues
+                                if ($value -ne $null) {
+                                    $lastEnumValue = [Int64]$value
+                                }
+                            }
+                            else {
+                                if ($lastEnumValue -eq $null) {
+                                    $value = 0
+                                }
+                                else {
+                                    $value = [Int64]$lastEnumValue + 1
+                                }
+                                $lastEnumValue = [Int64]$value
+                            }
+
+                            if ($value -ne $null -and !$knownValues.ContainsKey($entryName)) {
+                                $knownValues[$entryName] = $value
+                            }
+
+                            Add-SymbolEntry -Entries $entries -Kind "enum-member" -Symbol $entryName -Owner $enumName -Value $value -ValueExpression $expr -File $relativePath -Line $lineNumber -Group $group -Code $line -Confidence "source-symbol"
+                        }
+                    }
                 }
 
-                Add-SymbolEntry -Entries $entries -Kind "definition" -Symbol $symbol -Owner "" -Value $value -ValueExpression $expr -File $relativePath -Line $lineNumber -Group $group -Code $line -Confidence "source-symbol"
+                if ($enumBraceDepth -le 0 -and $line -match "\}") {
+                    $insideEnum = $false
+                    $enumName = ""
+                    $lastEnumValue = $null
+                }
+            }
+
+            foreach ($definitionMatch in [regex]::Matches($codeNoComment, $definitionPattern)) {
+                $symbol = $definitionMatch.Groups["symbol"].Value
+                $expr = $definitionMatch.Groups["expr"].Value.Trim()
+                if (Test-RelevantSymbol -Symbol $symbol) {
+                    $value = Convert-SimpleIntExpression -Expression $expr -KnownValues $knownValues
+                    if ($value -ne $null -and !$knownValues.ContainsKey($symbol)) {
+                        $knownValues[$symbol] = $value
+                    }
+
+                    Add-SymbolEntry -Entries $entries -Kind "definition" -Symbol $symbol -Owner "" -Value $value -ValueExpression $expr -File $relativePath -Line $lineNumber -Group $group -Code $line -Confidence "source-symbol"
+                }
+            }
+
+            foreach ($symbolMatch in [regex]::Matches($line, $identifierPattern)) {
+                $symbol = $symbolMatch.Groups[1].Value
+                if (!(Test-RelevantSymbol -Symbol $symbol)) {
+                    continue
+                }
+
+                $knownValue = $null
+                if ($knownValues.ContainsKey($symbol)) {
+                    $knownValue = $knownValues[$symbol]
+                }
+
+                Add-SymbolEntry -Entries $entries -Kind "reference" -Symbol $symbol -Owner $enumName -Value $knownValue -ValueExpression "" -File $relativePath -Line $lineNumber -Group $group -Code $line -Confidence "reference-only"
             }
         }
-
-        foreach ($symbolMatch in [regex]::Matches($line, $identifierPattern)) {
-            $symbol = $symbolMatch.Groups[1].Value
-            if (!(Test-RelevantSymbol -Symbol $symbol)) {
-                continue
-            }
-
-            Add-SymbolEntry -Entries $entries -Kind "reference" -Symbol $symbol -Owner $enumName -Value $(if ($knownValues.ContainsKey($symbol)) { $knownValues[$symbol] } else { $null }) -ValueExpression "" -File $relativePath -Line $lineNumber -Group $group -Code $line -Confidence "reference-only"
+        catch {
+            $message = "Failed while scanning {0}:{1}. Line: {2}. Error: {3}" -f $relativePath, $lineNumber, $line.Trim(), $_.Exception.Message
+            throw $message
         }
     }
 }
 
-$metadata = New-Object PSObject
-Add-Member -InputObject $metadata -MemberType NoteProperty -Name TombEngineRoot -Value $TombEngineRoot
-Add-Member -InputObject $metadata -MemberType NoteProperty -Name SourceFilesScanned -Value $sourceFiles.Count
-Add-Member -InputObject $metadata -MemberType NoteProperty -Name Entries -Value $entries.Count
-Add-Member -InputObject $metadata -MemberType NoteProperty -Name GeneratedBy -Value "docs/tools/ExtractTenOcbSymbols.ps1"
-Add-Member -InputObject $metadata -MemberType NoteProperty -Name Note -Value "Source-backed symbol extraction only. Reference-only entries need curation before TE UI exposure."
+$metadata = [pscustomobject]@{
+    TombEngineRoot = $TombEngineRoot
+    SourceFilesScanned = $sourceFiles.Count
+    Entries = $entries.Count
+    GeneratedBy = "docs/tools/ExtractTenOcbSymbols.ps1"
+    Note = "Source-backed symbol extraction only. Reference-only entries need curation before TE UI exposure."
+}
 
-$result = New-Object PSObject
-Add-Member -InputObject $result -MemberType NoteProperty -Name Metadata -Value $metadata
-Add-Member -InputObject $result -MemberType NoteProperty -Name Entries -Value @($entries)
+$result = [pscustomobject]@{
+    Metadata = $metadata
+    Entries = @($entries)
+}
 
 $jsonDirectory = Split-Path -Path $OutputJsonPath -Parent
 if (![string]::IsNullOrWhiteSpace($jsonDirectory) -and !(Test-Path $jsonDirectory)) {
@@ -310,7 +353,7 @@ if (![string]::IsNullOrWhiteSpace($jsonDirectory) -and !(Test-Path $jsonDirector
 
 $result | ConvertTo-Json -Depth 8 | Set-Content -Path $OutputJsonPath -Encoding UTF8
 
-$markdownLines = New-Object System.Collections.Generic.List[string]
+$markdownLines = New-Object System.Collections.ArrayList
 Add-Line -Lines $markdownLines -Text "# TEN OCB Symbol Catalog - Generated"
 Add-Line -Lines $markdownLines -Text ""
 Add-Line -Lines $markdownLines -Text "Generated by docs/tools/ExtractTenOcbSymbols.ps1."
@@ -375,7 +418,7 @@ if (![string]::IsNullOrWhiteSpace($markdownDirectory) -and !(Test-Path $markdown
     New-Item -ItemType Directory -Path $markdownDirectory | Out-Null
 }
 
-Set-Content -Path $OutputMarkdownPath -Value $markdownLines.ToArray() -Encoding UTF8
+Set-Content -Path $OutputMarkdownPath -Value @($markdownLines) -Encoding UTF8
 
 Write-Host ("Wrote " + $entries.Count + " symbol entries to " + $OutputJsonPath)
 Write-Host ("Wrote markdown review file to " + $OutputMarkdownPath)
