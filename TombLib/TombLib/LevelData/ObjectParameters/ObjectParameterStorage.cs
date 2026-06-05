@@ -101,7 +101,9 @@ namespace TombLib.LevelData.ObjectParameters
             return new ObjectParameterValue
             {
                 ParameterId = value.ParameterId ?? string.Empty,
-                Value = value.Value ?? string.Empty
+                Value = value.Value ?? string.Empty,
+                Source = value.Source,
+                MappingStatus = value.MappingStatus
             };
         }
 
@@ -116,6 +118,8 @@ namespace TombLib.LevelData.ObjectParameters
                 RoomIndex = key.RoomIndex,
                 ObjectIndex = key.ObjectIndex,
                 SlotId = key.SlotId,
+                Ocb = key.Ocb,
+                LuaName = key.LuaName ?? string.Empty,
                 ObjectTypeId = key.ObjectTypeId ?? string.Empty
             };
         }
@@ -129,6 +133,12 @@ namespace TombLib.LevelData.ObjectParameters
 
             if (instance is IHasScriptID scriptObject)
                 valueSet.ObjectKey.ScriptId = scriptObject.ScriptId;
+
+            if (instance is IHasLuaName luaObject)
+                valueSet.ObjectKey.LuaName = luaObject.LuaName ?? string.Empty;
+
+            if (instance is ItemInstance item)
+                valueSet.ObjectKey.Ocb = item.Ocb;
 
             if (instance is MoveableInstance moveable)
                 valueSet.ObjectKey.SlotId = (int)moveable.WadObjectId.TypeId;
