@@ -28,6 +28,9 @@ namespace TombEditor.Forms
         /// </summary>
         private void InitializeComponent()
         {
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             labelObject = new DarkUI.Controls.DarkLabel();
             darkLabel1 = new DarkUI.Controls.DarkLabel();
             comboDefinitions = new DarkUI.Controls.DarkComboBox();
@@ -55,28 +58,28 @@ namespace TombEditor.Forms
             labelObject.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             labelObject.AutoSize = false;
             labelObject.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            labelObject.Location = new System.Drawing.Point(7, 8);
+            labelObject.Location = new System.Drawing.Point(10, 9);
             labelObject.Name = "labelObject";
-            labelObject.Size = new System.Drawing.Size(746, 20);
+            labelObject.Size = new System.Drawing.Size(774, 32);
             labelObject.TabIndex = 0;
             // 
             // darkLabel1
             // 
             darkLabel1.AutoSize = true;
             darkLabel1.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            darkLabel1.Location = new System.Drawing.Point(7, 39);
+            darkLabel1.Location = new System.Drawing.Point(10, 52);
             darkLabel1.Name = "darkLabel1";
-            darkLabel1.Size = new System.Drawing.Size(56, 13);
+            darkLabel1.Size = new System.Drawing.Size(74, 13);
             darkLabel1.TabIndex = 1;
-            darkLabel1.Text = "Definition:";
+            darkLabel1.Text = "Parameter set:";
             // 
             // comboDefinitions
             // 
             comboDefinitions.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             comboDefinitions.FormattingEnabled = true;
-            comboDefinitions.Location = new System.Drawing.Point(83, 35);
+            comboDefinitions.Location = new System.Drawing.Point(96, 48);
             comboDefinitions.Name = "comboDefinitions";
-            comboDefinitions.Size = new System.Drawing.Size(432, 23);
+            comboDefinitions.Size = new System.Drawing.Size(456, 23);
             comboDefinitions.TabIndex = 2;
             comboDefinitions.SelectedIndexChanged += comboDefinitions_SelectedIndexChanged;
             // 
@@ -85,7 +88,7 @@ namespace TombEditor.Forms
             darkLabel2.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkLabel2.AutoSize = true;
             darkLabel2.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            darkLabel2.Location = new System.Drawing.Point(522, 39);
+            darkLabel2.Location = new System.Drawing.Point(565, 52);
             darkLabel2.Name = "darkLabel2";
             darkLabel2.Size = new System.Drawing.Size(42, 13);
             darkLabel2.TabIndex = 3;
@@ -95,9 +98,9 @@ namespace TombEditor.Forms
             // 
             comboPresets.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             comboPresets.FormattingEnabled = true;
-            comboPresets.Location = new System.Drawing.Point(570, 35);
+            comboPresets.Location = new System.Drawing.Point(613, 48);
             comboPresets.Name = "comboPresets";
-            comboPresets.Size = new System.Drawing.Size(183, 23);
+            comboPresets.Size = new System.Drawing.Size(171, 23);
             comboPresets.TabIndex = 4;
             comboPresets.SelectedIndexChanged += comboPresets_SelectedIndexChanged;
             // 
@@ -105,82 +108,113 @@ namespace TombEditor.Forms
             // 
             darkLabel3.AutoSize = true;
             darkLabel3.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            darkLabel3.Location = new System.Drawing.Point(7, 67);
+            darkLabel3.Location = new System.Drawing.Point(10, 75);
             darkLabel3.Name = "darkLabel3";
             darkLabel3.Size = new System.Drawing.Size(52, 13);
             darkLabel3.TabIndex = 5;
             darkLabel3.Text = "Provider:";
+            darkLabel3.Visible = false;
             // 
             // textProviderId
             // 
-            textProviderId.Location = new System.Drawing.Point(83, 63);
+            textProviderId.Location = new System.Drawing.Point(96, 72);
             textProviderId.Name = "textProviderId";
             textProviderId.ReadOnly = true;
             textProviderId.Size = new System.Drawing.Size(180, 20);
             textProviderId.TabIndex = 6;
+            textProviderId.Visible = false;
             // 
             // darkLabel4
             // 
             darkLabel4.AutoSize = true;
             darkLabel4.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            darkLabel4.Location = new System.Drawing.Point(274, 67);
+            darkLabel4.Location = new System.Drawing.Point(286, 75);
             darkLabel4.Name = "darkLabel4";
             darkLabel4.Size = new System.Drawing.Size(71, 13);
             darkLabel4.TabIndex = 7;
             darkLabel4.Text = "Definition ID:";
+            darkLabel4.Visible = false;
             // 
             // textDefinitionSetId
             // 
-            textDefinitionSetId.Location = new System.Drawing.Point(351, 63);
+            textDefinitionSetId.Location = new System.Drawing.Point(363, 72);
             textDefinitionSetId.Name = "textDefinitionSetId";
             textDefinitionSetId.Size = new System.Drawing.Size(164, 20);
             textDefinitionSetId.TabIndex = 8;
+            textDefinitionSetId.Visible = false;
             // 
             // darkLabel5
             // 
             darkLabel5.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkLabel5.AutoSize = true;
             darkLabel5.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            darkLabel5.Location = new System.Drawing.Point(522, 67);
+            darkLabel5.Location = new System.Drawing.Point(534, 75);
             darkLabel5.Name = "darkLabel5";
             darkLabel5.Size = new System.Drawing.Size(53, 13);
             darkLabel5.TabIndex = 9;
             darkLabel5.Text = "Preset ID:";
+            darkLabel5.Visible = false;
             // 
             // textPresetId
             // 
             textPresetId.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            textPresetId.Location = new System.Drawing.Point(581, 63);
+            textPresetId.Location = new System.Drawing.Point(593, 72);
             textPresetId.Name = "textPresetId";
             textPresetId.Size = new System.Drawing.Size(172, 20);
             textPresetId.TabIndex = 10;
+            textPresetId.Visible = false;
             // 
             // darkGroupBox1
             // 
             darkGroupBox1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             darkGroupBox1.Controls.Add(gridValues);
-            darkGroupBox1.Location = new System.Drawing.Point(7, 94);
+            darkGroupBox1.Location = new System.Drawing.Point(10, 82);
             darkGroupBox1.Name = "darkGroupBox1";
-            darkGroupBox1.Size = new System.Drawing.Size(746, 323);
+            darkGroupBox1.Size = new System.Drawing.Size(774, 371);
             darkGroupBox1.TabIndex = 11;
             darkGroupBox1.TabStop = false;
             darkGroupBox1.Text = "Object codes && parameters";
             // 
             // gridValues
             // 
-            gridValues.AllowUserToAddRows = true;
-            gridValues.AllowUserToDeleteRows = true;
+            gridValues.AllowUserToAddRows = false;
+            gridValues.AllowUserToDeleteRows = false;
+            gridValues.AllowUserToResizeRows = false;
             gridValues.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             gridValues.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            gridValues.BackgroundColor = System.Drawing.Color.FromArgb(43, 43, 43);
+            gridValues.BackgroundColor = System.Drawing.Color.FromArgb(37, 37, 37);
             gridValues.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            gridValues.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            gridValues.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(50, 54, 56);
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.Color.FromArgb(68, 72, 75);
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            gridValues.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            gridValues.ColumnHeadersHeight = 24;
+            gridValues.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(42, 42, 42);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.Color.FromArgb(0, 96, 160);
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            gridValues.DefaultCellStyle = dataGridViewCellStyle2;
+            gridValues.EnableHeadersVisualStyles = false;
+            gridValues.GridColor = System.Drawing.Color.FromArgb(64, 64, 64);
             gridValues.Location = new System.Drawing.Point(7, 19);
             gridValues.MultiSelect = false;
             gridValues.Name = "gridValues";
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(45, 45, 45);
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(0, 96, 160);
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.Color.White;
+            gridValues.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle3;
             gridValues.RowHeadersVisible = false;
+            gridValues.RowTemplate.Height = 22;
             gridValues.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            gridValues.Size = new System.Drawing.Size(733, 298);
+            gridValues.Size = new System.Drawing.Size(761, 346);
             gridValues.TabIndex = 0;
             gridValues.SelectionChanged += gridValues_SelectionChanged;
             // 
@@ -188,9 +222,9 @@ namespace TombEditor.Forms
             // 
             butOcbCodes.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             butOcbCodes.Checked = false;
-            butOcbCodes.Location = new System.Drawing.Point(7, 426);
+            butOcbCodes.Location = new System.Drawing.Point(10, 462);
             butOcbCodes.Name = "butOcbCodes";
-            butOcbCodes.Size = new System.Drawing.Size(152, 23);
+            butOcbCodes.Size = new System.Drawing.Size(158, 23);
             butOcbCodes.TabIndex = 12;
             butOcbCodes.Text = "Show existing OCB codes";
             butOcbCodes.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -200,7 +234,7 @@ namespace TombEditor.Forms
             // 
             butHelp.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             butHelp.Checked = false;
-            butHelp.Location = new System.Drawing.Point(165, 426);
+            butHelp.Location = new System.Drawing.Point(174, 462);
             butHelp.Name = "butHelp";
             butHelp.Size = new System.Drawing.Size(96, 23);
             butHelp.TabIndex = 13;
@@ -214,9 +248,9 @@ namespace TombEditor.Forms
             labelHelp.AutoSize = false;
             labelHelp.AutoUpdateHeight = true;
             labelHelp.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            labelHelp.Location = new System.Drawing.Point(267, 429);
+            labelHelp.Location = new System.Drawing.Point(276, 465);
             labelHelp.Name = "labelHelp";
-            labelHelp.Size = new System.Drawing.Size(282, 36);
+            labelHelp.Size = new System.Drawing.Size(326, 32);
             labelHelp.TabIndex = 14;
             labelHelp.Visible = false;
             // 
@@ -225,7 +259,7 @@ namespace TombEditor.Forms
             butCancel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butCancel.Checked = false;
             butCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            butCancel.Location = new System.Drawing.Point(673, 456);
+            butCancel.Location = new System.Drawing.Point(704, 491);
             butCancel.Name = "butCancel";
             butCancel.Size = new System.Drawing.Size(80, 23);
             butCancel.TabIndex = 16;
@@ -237,7 +271,7 @@ namespace TombEditor.Forms
             // 
             butOk.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butOk.Checked = false;
-            butOk.Location = new System.Drawing.Point(587, 456);
+            butOk.Location = new System.Drawing.Point(618, 491);
             butOk.Name = "butOk";
             butOk.Size = new System.Drawing.Size(80, 23);
             butOk.TabIndex = 15;
@@ -251,7 +285,7 @@ namespace TombEditor.Forms
             AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             CancelButton = butCancel;
-            ClientSize = new System.Drawing.Size(760, 487);
+            ClientSize = new System.Drawing.Size(794, 522);
             Controls.Add(butCancel);
             Controls.Add(butOk);
             Controls.Add(labelHelp);
