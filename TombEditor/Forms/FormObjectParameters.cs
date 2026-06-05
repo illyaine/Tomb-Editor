@@ -33,10 +33,12 @@ namespace TombEditor.Forms
         private void InitializeGrid()
         {
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", Name = "ParameterId", Visible = false });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Source", Name = "Source", FillWeight = 70, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Parameter", Name = "ParameterName", FillWeight = 150 });
-            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 260, ReadOnly = true });
-            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Value", Name = "Value", FillWeight = 120 });
-            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Unit", Name = "Unit", FillWeight = 70, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 240, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Value", Name = "Value", FillWeight = 110 });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Unit", Name = "Unit", FillWeight = 60, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", Name = "MappingStatus", FillWeight = 75, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Example", Name = "Example", Visible = false });
         }
 
@@ -45,8 +47,10 @@ namespace TombEditor.Forms
             ObjectParameterObjectKey key = _context.ObjectKey ?? new ObjectParameterObjectKey();
             string slot = key.SlotId.HasValue ? "Slot " + key.SlotId.Value : "No slot";
             string scriptId = key.ScriptId.HasValue ? "Script ID " + key.ScriptId.Value : "No script ID";
-            string room = key.RoomIndex.HasValue ? "Room " + key.RoomIndex.Value : "No room";
-            return _context.ObjectTypeId + "   |   " + slot + "   |   " + scriptId + "   |   " + room;
+            string itemIndex = key.ObjectIndex.HasValue ? "ItemIndex " + key.ObjectIndex.Value : "No item index";
+            string luaName = string.IsNullOrWhiteSpace(key.LuaName) ? "No Lua name" : "Lua name " + key.LuaName;
+            string ocb = key.Ocb.HasValue ? "OCB " + key.Ocb.Value : "No OCB";
+            return "Engine TEN   |   " + _context.ObjectTypeId + "   |   " + slot + "   |   " + itemIndex + "   |   " + scriptId + "   |   " + luaName + "   |   " + ocb;
         }
 
         private void LoadDefinitions()
@@ -77,9 +81,13 @@ namespace TombEditor.Forms
                 textPresetId.Text = valueSet.PresetId;
 
                 foreach (ObjectParameterValue value in valueSet.Values)
-                    AddOrUpdateValueRow(value.ParameterId, value.Value, FindParameterDefinition(value.ParameterId));
+                    AddOrUpdateValueRow(value.ParameterId, value.Value, FindParameterDefinition(value.ParameterId), value.Source, value.MappingStatus);
 
                 SelectPreset(valueSet.PresetId);
+            }
+            else if (_instance is ItemInstance item)
+            {
+                AddOrUpdateValueRow("ocb.raw", item.Ocb.ToString(), null, ObjectParameterSource.Ocb, ObjectParameterMappingStatus.Unknown);
             }
 
             _isLoading = false;
@@ -188,6 +196,12 @@ namespace TombEditor.Forms
             UpdateHelpPanel();
         }
 
+        private void butShowOcbCodes_Click(object sender, EventArgs e)
+        {
+            using (var form = new FormObjectOcbCodes(_instance, SelectedDefinitionSet))
+                form.ShowDialog(this);
+        }
+
         private int GetValueRowCount()
         {
             int count = 0;
@@ -203,7 +217,25 @@ namespace TombEditor.Forms
 
             foreach (ObjectParameterGroup group in definitionSet.Groups)
                 foreach (ObjectParameterDefinition parameter in group.Parameters)
-                    AddOrUpdateValueRow(parameter.Id, parameter.DefaultValue, parameter);
+                    AddOrUpdateValueRow(parameter.Id, parameter.DefaultValue, parameter, parameter.Source, parameter.MappingStatus);
+
+            if (_instance is ItemInstance item && !HasParameterRow("ocb.raw"))
+                AddOrUpdateValueRow("ocb.raw", item.Ocb.ToString(), null, ObjectParameterSource.Ocb, ObjectParameterMappingStatus.Unknown);
+        }
+
+        private bool HasParameterRow(string parameterId)
+        {
+            foreach (DataGridViewRow row in gridValues.Rows)
+            {
+                if (row.IsNewRow)
+                    continue;
+
+                string currentId = Convert.ToString(row.Cells["ParameterId"].Value)?.Trim() ?? string.Empty;
+                if (string.Equals(currentId, parameterId, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private ObjectParameterDefinition FindParameterDefinition(string parameterId)
@@ -220,10 +252,10 @@ namespace TombEditor.Forms
             return null;
         }
 
-        private void AddOrUpdateValueRow(string parameterId, string value, ObjectParameterDefinition parameter)
+        private void AddOrUpdateValueRow(string parameterId, string value, ObjectParameterDefinition parameter, ObjectParameterSource source, ObjectParameterMappingStatus mappingStatus)
         {
             string name = parameter?.Name ?? parameterId;
-            string description = parameter?.Description ?? string.Empty;
+            string description = parameter?.Description ?? (parameterId == "ocb.raw" ? "Raw OCB value. The meaning is not mapped for this object." : string.Empty);
             string unit = parameter?.Unit ?? string.Empty;
             string example = parameter?.Example ?? string.Empty;
 
@@ -235,22 +267,66 @@ namespace TombEditor.Forms
                 string currentId = Convert.ToString(row.Cells["ParameterId"].Value)?.Trim() ?? string.Empty;
                 if (string.Equals(currentId, parameterId, StringComparison.OrdinalIgnoreCase))
                 {
+                    row.Cells["Source"].Value = GetSourceText(source);
                     row.Cells["ParameterName"].Value = name;
                     row.Cells["Description"].Value = description;
                     row.Cells["Value"].Value = value;
                     row.Cells["Unit"].Value = unit;
+                    row.Cells["MappingStatus"].Value = mappingStatus.ToString();
                     row.Cells["Example"].Value = example;
                     return;
                 }
             }
 
-            gridValues.Rows.Add(parameterId, name, description, value, unit, example);
+            gridValues.Rows.Add(parameterId, GetSourceText(source), name, description, value, unit, mappingStatus.ToString(), example);
+        }
+
+        private static string GetSourceText(ObjectParameterSource source)
+        {
+            switch (source)
+            {
+                case ObjectParameterSource.Ocb:
+                    return "[OCB]";
+                case ObjectParameterSource.Ten:
+                    return "[TEN]";
+                case ObjectParameterSource.Script:
+                    return "[Script]";
+                case ObjectParameterSource.Custom:
+                    return "[Custom]";
+                default:
+                    return "[?]";
+            }
+        }
+
+        private static ObjectParameterSource ParseSource(string value)
+        {
+            switch (value)
+            {
+                case "[OCB]":
+                    return ObjectParameterSource.Ocb;
+                case "[TEN]":
+                    return ObjectParameterSource.Ten;
+                case "[Script]":
+                    return ObjectParameterSource.Script;
+                case "[Custom]":
+                    return ObjectParameterSource.Custom;
+                default:
+                    return ObjectParameterSource.Unknown;
+            }
+        }
+
+        private static ObjectParameterMappingStatus ParseMappingStatus(string value)
+        {
+            if (Enum.TryParse(value, out ObjectParameterMappingStatus result))
+                return result;
+
+            return ObjectParameterMappingStatus.Unknown;
         }
 
         private void ApplyPreset(ObjectParameterPreset preset)
         {
             foreach (ObjectParameterValue value in preset.Values)
-                AddOrUpdateValueRow(value.ParameterId, value.Value, FindParameterDefinition(value.ParameterId));
+                AddOrUpdateValueRow(value.ParameterId, value.Value, FindParameterDefinition(value.ParameterId), value.Source, value.MappingStatus);
         }
 
         private void UpdateHelpPanel()
@@ -268,15 +344,17 @@ namespace TombEditor.Forms
 
             string description = Convert.ToString(row.Cells["Description"].Value) ?? string.Empty;
             string example = Convert.ToString(row.Cells["Example"].Value) ?? string.Empty;
+            string status = Convert.ToString(row.Cells["MappingStatus"].Value) ?? string.Empty;
+            string nameWarning = string.IsNullOrWhiteSpace(_context.ObjectKey?.LuaName) ? "Hint: assign a Lua name for clear TEN runtime references. " : string.Empty;
 
             if (string.IsNullOrWhiteSpace(description) && string.IsNullOrWhiteSpace(example))
-                labelHelp.Text = "No additional help for this parameter.";
+                labelHelp.Text = nameWarning + "No additional help for this parameter. Status: " + status;
             else if (string.IsNullOrWhiteSpace(example))
-                labelHelp.Text = description;
+                labelHelp.Text = nameWarning + description + " Status: " + status;
             else if (string.IsNullOrWhiteSpace(description))
-                labelHelp.Text = "Example: " + example;
+                labelHelp.Text = nameWarning + "Example: " + example + " Status: " + status;
             else
-                labelHelp.Text = description + "  Example: " + example;
+                labelHelp.Text = nameWarning + description + "  Example: " + example + " Status: " + status;
         }
 
         private void butOk_Click(object sender, EventArgs e)
@@ -294,6 +372,8 @@ namespace TombEditor.Forms
 
                 string parameterId = Convert.ToString(row.Cells["ParameterId"].Value)?.Trim() ?? string.Empty;
                 string value = Convert.ToString(row.Cells["Value"].Value)?.Trim() ?? string.Empty;
+                string source = Convert.ToString(row.Cells["Source"].Value)?.Trim() ?? string.Empty;
+                string mappingStatus = Convert.ToString(row.Cells["MappingStatus"].Value)?.Trim() ?? string.Empty;
 
                 if (string.IsNullOrEmpty(parameterId) && string.IsNullOrEmpty(value))
                     continue;
@@ -301,7 +381,9 @@ namespace TombEditor.Forms
                 valueSet.Values.Add(new ObjectParameterValue
                 {
                     ParameterId = parameterId,
-                    Value = value
+                    Value = value,
+                    Source = ParseSource(source),
+                    MappingStatus = ParseMappingStatus(mappingStatus)
                 });
             }
 
