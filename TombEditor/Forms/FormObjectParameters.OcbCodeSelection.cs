@@ -9,147 +9,140 @@ namespace TombEditor.Forms
 {
     public partial class FormObjectParameters
     {
-        private DarkGroupBox _inlineOcbGroup;
-        private DataGridView _inlineOcbGrid;
-        private bool _inlineOcbLayoutApplied;
-        private bool _inlineOcbIsUpdating;
+        private DarkDataGridView _ocbGrid;
+        private bool _updatingOcbGrid;
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
 
-            if (comboDefinitions.Items.Count > 1 && SelectedDefinitionSet == null)
-                comboDefinitions.SelectedIndex = 1;
-
-            comboDefinitions.SelectedIndexChanged += comboDefinitions_SelectedIndexChangedInlineOcbList;
-            gridValues.CellValueChanged += gridValues_CellValueChangedInlineOcbList;
-            gridValues.CurrentCellDirtyStateChanged += gridValues_CurrentCellDirtyStateChangedInlineOcbList;
-
-            UpdateInlineOcbList();
+            SelectFirstOcbDefinitionSet();
+            gridValues.CellValueChanged += gridValues_CellValueChangedOcbGrid;
+            gridValues.CurrentCellDirtyStateChanged += gridValues_CurrentCellDirtyStateChangedOcbGrid;
+            UpdateOcbGridVisibility();
         }
 
-        private void comboDefinitions_SelectedIndexChangedInlineOcbList(object sender, EventArgs e)
+        private void SelectFirstOcbDefinitionSet()
         {
-            UpdateInlineOcbList();
+            if (SelectedDefinitionSet != null && SelectedDefinitionSet.OcbDefinitions.Count != 0)
+                return;
+
+            for (int i = 0; i < comboDefinitions.Items.Count; i++)
+            {
+                comboDefinitions.SelectedIndex = i;
+                if (SelectedDefinitionSet != null && SelectedDefinitionSet.OcbDefinitions.Count != 0)
+                    return;
+            }
         }
 
-        private void gridValues_CurrentCellDirtyStateChangedInlineOcbList(object sender, EventArgs e)
+        private void gridValues_CurrentCellDirtyStateChangedOcbGrid(object sender, EventArgs e)
         {
             if (gridValues.IsCurrentCellDirty)
                 gridValues.CommitEdit(DataGridViewDataErrorContexts.Commit);
         }
 
-        private void gridValues_CellValueChangedInlineOcbList(object sender, DataGridViewCellEventArgs e)
+        private void gridValues_CellValueChangedOcbGrid(object sender, DataGridViewCellEventArgs e)
         {
-            if (_inlineOcbIsUpdating || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Value")
+            if (_updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Value")
                 return;
 
             string parameterId = Convert.ToString(gridValues.Rows[e.RowIndex].Cells["ParameterId"].Value)?.Trim() ?? string.Empty;
             if (string.Equals(parameterId, "ocb.raw", StringComparison.OrdinalIgnoreCase))
-                UpdateInlineOcbList();
+                UpdateOcbGridVisibility();
         }
 
-        private void EnsureInlineOcbList()
+        private void EnsureOcbGrid()
         {
-            if (_inlineOcbGroup != null)
+            if (_ocbGrid != null)
                 return;
 
-            _inlineOcbGroup = new DarkGroupBox
-            {
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Location = new Point(darkGroupBox1.Left, darkGroupBox1.Top),
-                Name = "inlineOcbGroup",
-                Size = new Size(darkGroupBox1.Width, 145),
-                TabStop = false,
-                Text = "Known OCB codes for this object"
-            };
-
-            _inlineOcbGrid = new DataGridView
+            _ocbGrid = new DarkDataGridView
             {
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
+                AllowUserToDragDropRows = false,
+                AllowUserToPasteCells = false,
+                AllowUserToResizeRows = false,
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                BackgroundColor = Color.FromArgb(43, 43, 43),
-                BorderStyle = BorderStyle.FixedSingle,
-                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
-                Location = new Point(7, 19),
+                BorderStyle = BorderStyle.None,
+                CellBorderStyle = DataGridViewCellBorderStyle.Single,
+                ColumnHeadersHeight = 24,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+                EditMode = DataGridViewEditMode.EditOnEnter,
+                Location = gridValues.Location,
                 MultiSelect = false,
-                Name = "inlineOcbGrid",
+                Name = "gridOcbCodes",
+                PreventScrollOnCtrl = false,
                 RowHeadersVisible = false,
+                ScrollBars = ScrollBars.Both,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                Size = new Size(_inlineOcbGroup.Width - 13, _inlineOcbGroup.Height - 26),
-                TabIndex = 0
+                Size = gridValues.Size,
+                TabIndex = gridValues.TabIndex,
+                UseAlternativeDragDropMethod = false
             };
 
-            _inlineOcbGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Use", Name = "Use", FillWeight = 40, ReadOnly = false });
-            _inlineOcbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Slot", Name = "Slot", FillWeight = 140, ReadOnly = true });
-            _inlineOcbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "OCB", Name = "OcbValue", FillWeight = 55, ReadOnly = true });
-            _inlineOcbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 150, ReadOnly = true });
-            _inlineOcbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 300, ReadOnly = true });
-            _inlineOcbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Mode", Name = "Mode", FillWeight = 85, ReadOnly = true });
-            _inlineOcbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", Name = "Status", FillWeight = 80, ReadOnly = true });
+            _ocbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Slot", Name = "Slot", FillWeight = 160, ReadOnly = true });
+            _ocbGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Use", Name = "Use", FillWeight = 40, ReadOnly = false });
+            _ocbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "OCB", Name = "OcbValue", FillWeight = 55, ReadOnly = true });
+            _ocbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 150, ReadOnly = true });
+            _ocbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 330, ReadOnly = true });
+            _ocbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Mode", Name = "Mode", FillWeight = 85, ReadOnly = true });
+            _ocbGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", Name = "Status", FillWeight = 80, ReadOnly = true });
 
-            _inlineOcbGrid.CurrentCellDirtyStateChanged += inlineOcbGrid_CurrentCellDirtyStateChanged;
-            _inlineOcbGrid.CellValueChanged += inlineOcbGrid_CellValueChanged;
+            _ocbGrid.CurrentCellDirtyStateChanged += ocbGrid_CurrentCellDirtyStateChanged;
+            _ocbGrid.CellValueChanged += ocbGrid_CellValueChanged;
 
-            _inlineOcbGroup.Controls.Add(_inlineOcbGrid);
-            Controls.Add(_inlineOcbGroup);
-            _inlineOcbGroup.BringToFront();
+            darkGroupBox1.Controls.Add(_ocbGrid);
+            _ocbGrid.BringToFront();
         }
 
-        private void ApplyInlineOcbLayout()
-        {
-            if (_inlineOcbLayoutApplied)
-                return;
-
-            int offset = _inlineOcbGroup.Height + 8;
-            darkGroupBox1.Top += offset;
-            darkGroupBox1.Height = Math.Max(120, darkGroupBox1.Height - offset);
-            _inlineOcbLayoutApplied = true;
-        }
-
-        private void UpdateInlineOcbList()
+        private void UpdateOcbGridVisibility()
         {
             ObjectParameterDefinitionSet definitionSet = SelectedDefinitionSet;
-            bool hasDefinitions = definitionSet != null && definitionSet.OcbDefinitions.Count != 0;
+            bool hasOcbDefinitions = definitionSet != null && definitionSet.OcbDefinitions.Count != 0;
 
-            comboDefinitions.Visible = !hasDefinitions;
-            darkLabel1.Visible = !hasDefinitions;
-            comboPresets.Visible = !hasDefinitions;
-            darkLabel2.Visible = !hasDefinitions;
+            comboDefinitions.Visible = !hasOcbDefinitions;
+            darkLabel1.Visible = !hasOcbDefinitions;
+            comboPresets.Visible = false;
+            darkLabel2.Visible = false;
             butOcbCodes.Visible = false;
+            gridValues.Visible = !hasOcbDefinitions;
+            darkGroupBox1.Text = hasOcbDefinitions ? "Known OCB codes for this object" : "Object codes && parameters";
 
-            if (!hasDefinitions)
+            if (!hasOcbDefinitions)
             {
-                if (_inlineOcbGroup != null)
-                    _inlineOcbGroup.Visible = false;
+                if (_ocbGrid != null)
+                    _ocbGrid.Visible = false;
                 return;
             }
 
-            EnsureInlineOcbList();
-            ApplyInlineOcbLayout();
+            EnsureOcbGrid();
+            ReloadOcbGrid(definitionSet);
+        }
 
-            _inlineOcbGroup.Visible = true;
-            _inlineOcbIsUpdating = true;
-            _inlineOcbGrid.Rows.Clear();
+        private void ReloadOcbGrid(ObjectParameterDefinitionSet definitionSet)
+        {
+            _updatingOcbGrid = true;
+            _ocbGrid.Visible = true;
+            _ocbGrid.Rows.Clear();
 
-            short currentOcb = GetRawOcbValueForInlineList();
-            string slotText = GetInlineOcbSlotText(definitionSet);
+            short currentOcb = GetRawOcbValue();
+            string slotText = GetSlotText(definitionSet);
 
             foreach (ObjectParameterOcbDefinition definition in definitionSet.OcbDefinitions)
-                AddInlineOcbRow(definition, slotText, IsInlineOcbDefinitionActive(definition, currentOcb));
+                AddOcbRow(definition, slotText, IsDefinitionActive(definition, currentOcb));
 
-            if (CalculateInlineOcbValueFromRows() != currentOcb)
+            if (CalculateOcbFromGrid() != currentOcb)
             {
-                foreach (DataGridViewRow row in _inlineOcbGrid.Rows)
+                foreach (DataGridViewRow row in _ocbGrid.Rows)
                     row.Cells["Use"].Value = false;
 
-                AddInlineOcbRow(new ObjectParameterOcbDefinition
+                AddOcbRow(new ObjectParameterOcbDefinition
                 {
                     Value = currentOcb,
                     Name = "Unknown / undocumented",
-                    Description = "The current raw OCB value is preserved. No confirmed object-specific meaning is available yet.",
+                    Description = "Current raw OCB value. No confirmed object-specific meaning is available yet.",
                     Group = "Raw",
                     Mode = ObjectParameterOcbMode.FixedValue,
                     MappingStatus = ObjectParameterMappingStatus.Unknown,
@@ -157,17 +150,18 @@ namespace TombEditor.Forms
                 }, slotText, true);
             }
 
-            _inlineOcbIsUpdating = false;
-            ApplyInlineOcbValueToRawRow(false);
+            _updatingOcbGrid = false;
+            ApplyOcbGridValueToRawRow(false);
         }
 
-        private string GetInlineOcbSlotText(ObjectParameterDefinitionSet definitionSet)
+        private string GetSlotText(ObjectParameterDefinitionSet definitionSet)
         {
             string slot = _context.ObjectKey?.SlotId.HasValue == true ? "Slot " + _context.ObjectKey.SlotId.Value : "No slot";
-            return slot + " - " + definitionSet.Name;
+            string name = (definitionSet.Name ?? string.Empty).Replace("TEN OCB:", string.Empty).Trim();
+            return string.IsNullOrEmpty(name) ? slot : slot + " - " + name;
         }
 
-        private short GetRawOcbValueForInlineList()
+        private short GetRawOcbValue()
         {
             foreach (DataGridViewRow row in gridValues.Rows)
             {
@@ -191,7 +185,7 @@ namespace TombEditor.Forms
             return 0;
         }
 
-        private static bool IsInlineOcbDefinitionActive(ObjectParameterOcbDefinition definition, short currentOcb)
+        private static bool IsDefinitionActive(ObjectParameterOcbDefinition definition, short currentOcb)
         {
             if (definition.Mode == ObjectParameterOcbMode.AdditiveFlags || definition.IsCombinable)
                 return definition.Value > 0 && (currentOcb & definition.Value) == definition.Value;
@@ -199,21 +193,21 @@ namespace TombEditor.Forms
             return definition.Value == currentOcb;
         }
 
-        private void AddInlineOcbRow(ObjectParameterOcbDefinition definition, string slotText, bool isActive)
+        private void AddOcbRow(ObjectParameterOcbDefinition definition, string slotText, bool active)
         {
-            int index = _inlineOcbGrid.Rows.Add(
-                isActive,
+            int index = _ocbGrid.Rows.Add(
                 slotText,
+                active,
                 definition.Value,
                 definition.Name,
                 definition.Description,
-                GetInlineOcbModeText(definition),
+                GetModeText(definition),
                 definition.MappingStatus.ToString());
 
-            _inlineOcbGrid.Rows[index].Tag = definition;
+            _ocbGrid.Rows[index].Tag = definition;
         }
 
-        private static string GetInlineOcbModeText(ObjectParameterOcbDefinition definition)
+        private static string GetModeText(ObjectParameterOcbDefinition definition)
         {
             if (definition.Mode == ObjectParameterOcbMode.AdditiveFlags || definition.IsCombinable)
                 return "Checkbox flag";
@@ -221,25 +215,25 @@ namespace TombEditor.Forms
             return "Single value";
         }
 
-        private void inlineOcbGrid_CurrentCellDirtyStateChanged(object sender, EventArgs e)
+        private void ocbGrid_CurrentCellDirtyStateChanged(object sender, EventArgs e)
         {
-            if (_inlineOcbGrid.IsCurrentCellDirty)
-                _inlineOcbGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            if (_ocbGrid.IsCurrentCellDirty)
+                _ocbGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
         }
 
-        private void inlineOcbGrid_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        private void ocbGrid_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (_inlineOcbIsUpdating || e.RowIndex < 0 || e.ColumnIndex < 0 || _inlineOcbGrid.Columns[e.ColumnIndex].Name != "Use")
+            if (_updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || _ocbGrid.Columns[e.ColumnIndex].Name != "Use")
                 return;
 
-            DataGridViewRow row = _inlineOcbGrid.Rows[e.RowIndex];
+            DataGridViewRow row = _ocbGrid.Rows[e.RowIndex];
             var definition = row.Tag as ObjectParameterOcbDefinition;
-            bool isChecked = Convert.ToBoolean(row.Cells["Use"].Value ?? false);
+            bool active = Convert.ToBoolean(row.Cells["Use"].Value ?? false);
 
-            if (isChecked && definition != null && definition.Mode == ObjectParameterOcbMode.FixedValue && !definition.IsCombinable)
+            if (active && definition != null && definition.Mode == ObjectParameterOcbMode.FixedValue && !definition.IsCombinable)
             {
-                _inlineOcbIsUpdating = true;
-                foreach (DataGridViewRow otherRow in _inlineOcbGrid.Rows)
+                _updatingOcbGrid = true;
+                foreach (DataGridViewRow otherRow in _ocbGrid.Rows)
                 {
                     if (otherRow == row)
                         continue;
@@ -248,36 +242,36 @@ namespace TombEditor.Forms
                     if (otherDefinition != null && otherDefinition.Mode == ObjectParameterOcbMode.FixedValue && !otherDefinition.IsCombinable)
                         otherRow.Cells["Use"].Value = false;
                 }
-                _inlineOcbIsUpdating = false;
+                _updatingOcbGrid = false;
             }
 
-            ApplyInlineOcbValueToRawRow(true);
+            ApplyOcbGridValueToRawRow(true);
         }
 
-        private void ApplyInlineOcbValueToRawRow(bool updateHelp)
+        private void ApplyOcbGridValueToRawRow(bool updateHelp)
         {
-            if (_inlineOcbGrid == null || SelectedDefinitionSet == null)
+            if (_ocbGrid == null || SelectedDefinitionSet == null)
                 return;
 
-            short selectedOcb = CalculateInlineOcbValueFromRows();
+            short selectedOcb = CalculateOcbFromGrid();
             ObjectParameterDefinition parameter = FindParameterDefinition("ocb.raw");
             ObjectParameterSource source = SelectedDefinitionSet.Source;
-            ObjectParameterMappingStatus status = GetInlineOcbMappingStatus();
+            ObjectParameterMappingStatus status = GetMappingStatusFromGrid();
 
-            _inlineOcbIsUpdating = true;
+            _updatingOcbGrid = true;
             AddOrUpdateValueRow("ocb.raw", selectedOcb.ToString(), parameter, source, status);
             textProviderId.Text = SelectedDefinitionSet.ProviderId;
             textDefinitionSetId.Text = SelectedDefinitionSet.Id;
             textPresetId.Text = string.Empty;
-            _inlineOcbIsUpdating = false;
+            _updatingOcbGrid = false;
 
             if (updateHelp)
                 UpdateHelpPanel();
         }
 
-        private ObjectParameterMappingStatus GetInlineOcbMappingStatus()
+        private ObjectParameterMappingStatus GetMappingStatusFromGrid()
         {
-            foreach (DataGridViewRow row in _inlineOcbGrid.Rows)
+            foreach (DataGridViewRow row in _ocbGrid.Rows)
             {
                 if (!Convert.ToBoolean(row.Cells["Use"].Value ?? false))
                     continue;
@@ -289,15 +283,15 @@ namespace TombEditor.Forms
             return ObjectParameterMappingStatus.Unknown;
         }
 
-        private short CalculateInlineOcbValueFromRows()
+        private short CalculateOcbFromGrid()
         {
             int flags = 0;
             int? fixedValue = null;
 
-            if (_inlineOcbGrid == null)
-                return GetRawOcbValueForInlineList();
+            if (_ocbGrid == null)
+                return GetRawOcbValue();
 
-            foreach (DataGridViewRow row in _inlineOcbGrid.Rows)
+            foreach (DataGridViewRow row in _ocbGrid.Rows)
             {
                 if (!Convert.ToBoolean(row.Cells["Use"].Value ?? false))
                     continue;
