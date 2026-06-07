@@ -114,6 +114,8 @@ namespace TombEditor.Forms
             ObjectParameterDefinitionSet definitionSet = SelectedDefinitionSet;
             bool hasDefinitions = definitionSet != null && definitionSet.OcbDefinitions.Count != 0;
 
+            comboDefinitions.Visible = !hasDefinitions;
+            darkLabel1.Visible = !hasDefinitions;
             comboPresets.Visible = !hasDefinitions;
             darkLabel2.Visible = !hasDefinitions;
             butOcbCodes.Visible = false;
