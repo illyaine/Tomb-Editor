@@ -9,6 +9,7 @@ namespace TombEditor.Forms
     {
         private bool _isOcbGridMode;
         private bool _updatingOcbGrid;
+        private short? _selectedOcbValue;
 
         protected override void OnLoad(EventArgs e)
         {
@@ -60,8 +61,10 @@ namespace TombEditor.Forms
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", Name = "Status", FillWeight = 80, ReadOnly = true });
 
             gridValues.CurrentCellDirtyStateChanged -= gridValues_CurrentCellDirtyStateChangedOcbGrid;
+            gridValues.CellContentClick -= gridValues_CellContentClickOcbGrid;
             gridValues.CellValueChanged -= gridValues_CellValueChangedOcbGrid;
             gridValues.CurrentCellDirtyStateChanged += gridValues_CurrentCellDirtyStateChangedOcbGrid;
+            gridValues.CellContentClick += gridValues_CellContentClickOcbGrid;
             gridValues.CellValueChanged += gridValues_CellValueChangedOcbGrid;
         }
 
@@ -70,7 +73,7 @@ namespace TombEditor.Forms
             _updatingOcbGrid = true;
             gridValues.Rows.Clear();
 
-            short currentOcb = GetCurrentObjectOcb();
+            short currentOcb = _selectedOcbValue ?? GetCurrentObjectOcb();
             string slotText = GetSlotText(definitionSet);
 
             foreach (ObjectParameterOcbDefinition definition in definitionSet.OcbDefinitions)
@@ -93,6 +96,7 @@ namespace TombEditor.Forms
                 }, slotText, true);
             }
 
+            _selectedOcbValue = CalculateOcbFromGrid();
             ApplyOcbGridValueToHiddenState();
             _updatingOcbGrid = false;
         }
@@ -150,6 +154,14 @@ namespace TombEditor.Forms
                 gridValues.CommitEdit(DataGridViewDataErrorContexts.Commit);
         }
 
+        private void gridValues_CellContentClickOcbGrid(object sender, DataGridViewCellEventArgs e)
+        {
+            if (!_isOcbGridMode || _updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Use")
+                return;
+
+            gridValues.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+
         private void gridValues_CellValueChangedOcbGrid(object sender, DataGridViewCellEventArgs e)
         {
             if (!_isOcbGridMode || _updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Use")
@@ -174,6 +186,7 @@ namespace TombEditor.Forms
                 _updatingOcbGrid = false;
             }
 
+            _selectedOcbValue = CalculateOcbFromGrid();
             ApplyOcbGridValueToHiddenState();
         }
 
