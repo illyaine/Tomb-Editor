@@ -220,6 +220,9 @@ namespace TombEditor.Forms
 
         private bool HasParameterRow(string parameterId)
         {
+            if (!gridValues.Columns.Contains("ParameterId"))
+                return false;
+
             foreach (DataGridViewRow row in gridValues.Rows)
             {
                 if (row.IsNewRow)
@@ -249,6 +252,9 @@ namespace TombEditor.Forms
 
         private void AddOrUpdateValueRow(string parameterId, string value, ObjectParameterDefinition parameter, ObjectParameterSource source, ObjectParameterMappingStatus mappingStatus)
         {
+            if (!gridValues.Columns.Contains("ParameterId"))
+                return;
+
             string name = parameter?.Name ?? parameterId;
             string description = parameter?.Description ?? (parameterId == "ocb.raw" ? "Raw OCB value. The meaning is not mapped for this object." : string.Empty);
             string unit = parameter?.Unit ?? string.Empty;
@@ -360,22 +366,30 @@ namespace TombEditor.Forms
                 return;
             }
 
-            string description = Convert.ToString(row.Cells["Description"].Value) ?? string.Empty;
+            if (_isOcbGridMode)
+            {
+                string description = Convert.ToString(row.Cells["Description"].Value) ?? string.Empty;
+                string status = Convert.ToString(row.Cells["Status"].Value) ?? string.Empty;
+                labelHelp.Text = description + " Status: " + status;
+                return;
+            }
+
+            string normalDescription = Convert.ToString(row.Cells["Description"].Value) ?? string.Empty;
             string example = Convert.ToString(row.Cells["Example"].Value) ?? string.Empty;
-            string status = Convert.ToString(row.Cells["MappingStatus"].Value) ?? string.Empty;
+            string normalStatus = Convert.ToString(row.Cells["MappingStatus"].Value) ?? string.Empty;
             string source = Convert.ToString(row.Cells["Source"].Value) ?? string.Empty;
             string sourceDescription = GetSourceDescription(ParseSource(source));
             string nameWarning = ObjectParameterSupport.SupportsRuntimeParameters(_level) && string.IsNullOrWhiteSpace(_context.ObjectKey?.LuaName) ? "Hint: assign a Lua name for clear TEN runtime references. " : string.Empty;
             string prefix = source + ": " + sourceDescription + " ";
 
-            if (string.IsNullOrWhiteSpace(description) && string.IsNullOrWhiteSpace(example))
-                labelHelp.Text = nameWarning + prefix + "No additional help for this parameter. Status: " + status;
+            if (string.IsNullOrWhiteSpace(normalDescription) && string.IsNullOrWhiteSpace(example))
+                labelHelp.Text = nameWarning + prefix + "No additional help for this parameter. Status: " + normalStatus;
             else if (string.IsNullOrWhiteSpace(example))
-                labelHelp.Text = nameWarning + prefix + description + " Status: " + status;
-            else if (string.IsNullOrWhiteSpace(description))
-                labelHelp.Text = nameWarning + prefix + "Example: " + example + " Status: " + status;
+                labelHelp.Text = nameWarning + prefix + normalDescription + " Status: " + normalStatus;
+            else if (string.IsNullOrWhiteSpace(normalDescription))
+                labelHelp.Text = nameWarning + prefix + "Example: " + example + " Status: " + normalStatus;
             else
-                labelHelp.Text = nameWarning + prefix + description + "  Example: " + example + " Status: " + status;
+                labelHelp.Text = nameWarning + prefix + normalDescription + "  Example: " + example + " Status: " + normalStatus;
         }
 
         private void butOk_Click(object sender, EventArgs e)
@@ -383,29 +397,44 @@ namespace TombEditor.Forms
             ObjectParameterValueSet valueSet = ObjectParameterStorage.GetOrCreate(_instance);
             valueSet.ProviderId = textProviderId.Text.Trim();
             valueSet.DefinitionSetId = textDefinitionSetId.Text.Trim();
-            valueSet.PresetId = textPresetId.Text.Trim();
+            valueSet.PresetId = string.Empty;
             valueSet.Values.Clear();
 
-            foreach (DataGridViewRow row in gridValues.Rows)
+            if (_isOcbGridMode)
             {
-                if (row.IsNewRow)
-                    continue;
-
-                string parameterId = Convert.ToString(row.Cells["ParameterId"].Value)?.Trim() ?? string.Empty;
-                string value = Convert.ToString(row.Cells["Value"].Value)?.Trim() ?? string.Empty;
-                string source = Convert.ToString(row.Cells["Source"].Value)?.Trim() ?? string.Empty;
-                string mappingStatus = Convert.ToString(row.Cells["MappingStatus"].Value)?.Trim() ?? string.Empty;
-
-                if (string.IsNullOrEmpty(parameterId) && string.IsNullOrEmpty(value))
-                    continue;
-
                 valueSet.Values.Add(new ObjectParameterValue
                 {
-                    ParameterId = parameterId,
-                    Value = value,
-                    Source = ParseSource(source),
-                    MappingStatus = ParseMappingStatus(mappingStatus)
+                    ParameterId = "ocb.raw",
+                    Value = CalculateOcbFromGrid().ToString(),
+                    Source = SelectedDefinitionSet?.Source ?? ObjectParameterSource.Ocb,
+                    MappingStatus = GetMappingStatusFromGrid()
                 });
+            }
+            else
+            {
+                valueSet.PresetId = textPresetId.Text.Trim();
+
+                foreach (DataGridViewRow row in gridValues.Rows)
+                {
+                    if (row.IsNewRow)
+                        continue;
+
+                    string parameterId = Convert.ToString(row.Cells["ParameterId"].Value)?.Trim() ?? string.Empty;
+                    string value = Convert.ToString(row.Cells["Value"].Value)?.Trim() ?? string.Empty;
+                    string source = Convert.ToString(row.Cells["Source"].Value)?.Trim() ?? string.Empty;
+                    string mappingStatus = Convert.ToString(row.Cells["MappingStatus"].Value)?.Trim() ?? string.Empty;
+
+                    if (string.IsNullOrEmpty(parameterId) && string.IsNullOrEmpty(value))
+                        continue;
+
+                    valueSet.Values.Add(new ObjectParameterValue
+                    {
+                        ParameterId = parameterId,
+                        Value = value,
+                        Source = ParseSource(source),
+                        MappingStatus = ParseMappingStatus(mappingStatus)
+                    });
+                }
             }
 
             List<ObjectParameterValidationMessage> messages = ObjectParameterProviderRegistry.Validate(_context, valueSet).ToList();
