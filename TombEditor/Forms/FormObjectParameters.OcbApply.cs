@@ -23,6 +23,12 @@ namespace TombEditor.Forms
         {
             errorMessage = string.Empty;
 
+            if (_isOcbGridMode)
+            {
+                ApplyOcbToObject(CalculateOcbFromGrid());
+                return true;
+            }
+
             string rawOcbValue = GetRawOcbValueFromGrid();
             if (string.IsNullOrWhiteSpace(rawOcbValue))
                 return true;
@@ -33,12 +39,16 @@ namespace TombEditor.Forms
                 return false;
             }
 
+            ApplyOcbToObject(ocb);
+            return true;
+        }
+
+        private void ApplyOcbToObject(short ocb)
+        {
             if (_instance is ItemInstance item)
                 item.Ocb = ocb;
             else if (_instance is StaticInstance staticInstance)
                 staticInstance.Ocb = ocb;
-
-            return true;
         }
 
         private string GetRawOcbValueFromGrid()
