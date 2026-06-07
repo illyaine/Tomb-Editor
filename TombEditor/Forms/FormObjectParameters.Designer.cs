@@ -208,7 +208,6 @@ namespace TombEditor.Forms
             butOcbCodes.TabIndex = 12;
             butOcbCodes.Text = "Show existing OCB codes";
             butOcbCodes.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
-            butOcbCodes.Click += butShowOcbCodes_Click;
             // 
             // butHelp
             // 
