@@ -197,12 +197,6 @@ namespace TombEditor.Forms
             UpdateHelpPanel();
         }
 
-        private void butShowOcbCodes_Click(object sender, EventArgs e)
-        {
-            using (var form = new FormObjectOcbCodes(_instance, SelectedDefinitionSet))
-                form.ShowDialog(this);
-        }
-
         private int GetValueRowCount()
         {
             int count = 0;
