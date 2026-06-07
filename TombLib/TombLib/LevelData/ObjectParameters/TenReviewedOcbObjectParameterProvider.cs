@@ -18,6 +18,7 @@ namespace TombLib.LevelData.ObjectParameters
                 yield break;
 
             int slotId = context.SlotId.Value;
+            bool hasReviewedSet = true;
 
             if (slotId >= 850 && slotId <= 879)
                 yield return BuildDoorSet(context);
@@ -45,6 +46,11 @@ namespace TombLib.LevelData.ObjectParameters
                 yield return BuildSophiaLeighSet(context);
             else if (slotId == 283)
                 yield return BuildImpSet(context);
+            else
+                hasReviewedSet = false;
+
+            if (!hasReviewedSet)
+                yield return BuildGenericRawOcbSet(context);
         }
 
         public IEnumerable<ObjectParameterValidationMessage> Validate(ObjectParameterContext context, ObjectParameterValueSet values)
@@ -71,7 +77,8 @@ namespace TombLib.LevelData.ObjectParameters
         {
             return context != null &&
                    context.SlotId.HasValue &&
-                   string.Equals(context.ObjectTypeId, "MoveableInstance", StringComparison.OrdinalIgnoreCase) &&
+                   (string.Equals(context.ObjectTypeId, "MoveableInstance", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(context.ObjectTypeId, "StaticInstance", StringComparison.OrdinalIgnoreCase)) &&
                    string.Equals(context.EngineId, "TombEngine", StringComparison.OrdinalIgnoreCase);
         }
 
@@ -323,6 +330,25 @@ namespace TombLib.LevelData.ObjectParameters
                     Ocb(1, "Climb up", "IMP_OCB_CLIMB_UP", "TR5 Imp"),
                     Ocb(2, "Roll", "IMP_OCB_ROLL", "TR5 Imp"),
                     Ocb(3, "Stone attack", "IMP_OCB_STONE_ATTACK", "TR5 Imp")
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildGenericRawOcbSet(ObjectParameterContext context)
+        {
+            short currentOcb = 0;
+            if (context?.ObjectKey != null && context.ObjectKey.Ocb.HasValue)
+                currentOcb = context.ObjectKey.Ocb.Value;
+
+            return BuildSet(
+                context,
+                "ten.ocb.generic.raw." + context.SlotId.Value,
+                "TEN OCB: Raw object OCB",
+                "No reviewed object-specific OCB mapping is available yet. The raw OCB value is still shown and preserved.",
+                ObjectParameterMappingStatus.Unknown,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(currentOcb, "Current raw OCB", "Current raw OCB value. Meaning is not reviewed for this object yet.", "Raw OCB", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Unknown, "Review TEN source before documenting this object-specific OCB.")
                 });
         }
 
