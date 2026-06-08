@@ -54,7 +54,7 @@ namespace TombEditor.Forms
         {
             gridValues.Columns.Clear();
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Slot", Name = "Slot", FillWeight = 160, ReadOnly = true });
-            gridValues.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Use", Name = "Use", FillWeight = 40, ReadOnly = true });
+            gridValues.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Use", Name = "Use", FillWeight = 40, ReadOnly = true, TrueValue = true, FalseValue = false, IndeterminateValue = false, ThreeState = false });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "OCB", Name = "OcbValue", FillWeight = 55, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 150, ReadOnly = true });
             gridValues.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", Name = "Description", FillWeight = 330, ReadOnly = true });
@@ -65,7 +65,10 @@ namespace TombEditor.Forms
             gridValues.CellContentClick -= gridValues_CellContentClickOcbGrid;
             gridValues.CellValueChanged -= gridValues_CellValueChangedOcbGrid;
             gridValues.CellClick -= gridValues_CellClickOcbGrid;
-            gridValues.CellClick += gridValues_CellClickOcbGrid;
+            gridValues.CellMouseDown -= gridValues_CellMouseDownOcbGrid;
+            gridValues.KeyDown -= gridValues_KeyDownOcbGrid;
+            gridValues.CellMouseDown += gridValues_CellMouseDownOcbGrid;
+            gridValues.KeyDown += gridValues_KeyDownOcbGrid;
         }
 
         private void ReloadOcbGrid(ObjectParameterDefinitionSet definitionSet)
@@ -150,32 +153,47 @@ namespace TombEditor.Forms
 
         private void gridValues_CurrentCellDirtyStateChangedOcbGrid(object sender, EventArgs e)
         {
-            if (gridValues.IsCurrentCellDirty)
-                gridValues.CommitEdit(DataGridViewDataErrorContexts.Commit);
         }
 
         private void gridValues_CellContentClickOcbGrid(object sender, DataGridViewCellEventArgs e)
         {
-            if (!_isOcbGridMode || _updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Use")
-                return;
-
-            gridValues.CommitEdit(DataGridViewDataErrorContexts.Commit);
         }
 
         private void gridValues_CellValueChangedOcbGrid(object sender, DataGridViewCellEventArgs e)
         {
-            if (!_isOcbGridMode || _updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Use")
-                return;
-
-            UpdateOcbSelectionFromRow(gridValues.Rows[e.RowIndex], Convert.ToBoolean(gridValues.Rows[e.RowIndex].Cells["Use"].Value ?? false));
         }
 
         private void gridValues_CellClickOcbGrid(object sender, DataGridViewCellEventArgs e)
         {
+        }
+
+        private void gridValues_CellMouseDownOcbGrid(object sender, DataGridViewCellMouseEventArgs e)
+        {
             if (!_isOcbGridMode || _updatingOcbGrid || e.RowIndex < 0 || e.ColumnIndex < 0 || gridValues.Columns[e.ColumnIndex].Name != "Use")
                 return;
 
-            DataGridViewRow row = gridValues.Rows[e.RowIndex];
+            gridValues.CurrentCell = gridValues[e.ColumnIndex, e.RowIndex];
+            ToggleOcbSelectionRow(gridValues.Rows[e.RowIndex]);
+        }
+
+        private void gridValues_KeyDownOcbGrid(object sender, KeyEventArgs e)
+        {
+            if (!_isOcbGridMode || _updatingOcbGrid || gridValues.CurrentRow == null)
+                return;
+
+            if (e.KeyCode != Keys.Space && e.KeyCode != Keys.Enter)
+                return;
+
+            ToggleOcbSelectionRow(gridValues.CurrentRow);
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+        }
+
+        private void ToggleOcbSelectionRow(DataGridViewRow row)
+        {
+            if (row == null || row.IsNewRow)
+                return;
+
             bool active = !Convert.ToBoolean(row.Cells["Use"].Value ?? false);
             UpdateOcbSelectionFromRow(row, active);
         }
@@ -206,6 +224,8 @@ namespace TombEditor.Forms
             _updatingOcbGrid = false;
             _selectedOcbValue = CalculateOcbFromGrid();
             ApplyOcbGridValueToHiddenState();
+            gridValues.RefreshEdit();
+            gridValues.InvalidateCell(row.Cells["Use"]);
             gridValues.Invalidate();
         }
 
@@ -217,10 +237,6 @@ namespace TombEditor.Forms
             try
             {
                 _committingOcbGridEdit = true;
-
-                if (gridValues.IsCurrentCellDirty)
-                    gridValues.CommitEdit(DataGridViewDataErrorContexts.Commit);
-
                 gridValues.EndEdit(DataGridViewDataErrorContexts.Commit);
             }
             catch (InvalidOperationException)
