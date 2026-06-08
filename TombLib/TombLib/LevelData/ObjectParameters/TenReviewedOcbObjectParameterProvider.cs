@@ -28,6 +28,8 @@ namespace TombLib.LevelData.ObjectParameters
                 yield return BuildPulleySet(context);
             else if ((slotId >= 393 && slotId <= 402) || (slotId >= 435 && slotId <= 444))
                 yield return BuildPushableSet(context);
+            else if (slotId == 360)
+                yield return BuildFlameEmitter2Set(context);
             else if (slotId == 369)
                 yield return BuildDartEmitterSet(context);
             else if (slotId == 372 || slotId == 373)
@@ -163,6 +165,35 @@ namespace TombLib.LevelData.ObjectParameters
                 {
                     Ocb(1, "Enable falling behaviour", "Bit 0 / mask 1 enables falling behaviour.", "Pushable objects", true, ObjectParameterOcbMode.AdditiveFlags),
                     Ocb(2, "Disable automatic center alignment", "Bit 1 / mask 2 disables automatic center alignment.", "Pushable objects", true, ObjectParameterOcbMode.AdditiveFlags)
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildFlameEmitter2Set(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.effects.flame_emitter2",
+                "TEN OCB: Flame Emitter 2",
+                "Reviewed TEN OCB values for Flame Emitter 2 size and movement behaviour.",
+                ObjectParameterMappingStatus.Mapped,
+                new List<ObjectParameterPreset>
+                {
+                    Preset("normalLargeWithLight", "Large flame with dynamic light", 0),
+                    Preset("normalMedium", "Medium flame", 1),
+                    Preset("movingFlameWithLight", "Moving flame with dynamic light", 2),
+                    Preset("smallFlame", "Small flame", 3),
+                    Preset("tinyFlame", "Tiny flame", 4),
+                    Preset("legacyTinyFlame", "Legacy tiny flame", 123)
+                },
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Large flame with dynamic light", "OCB 0 creates the default large Flame Emitter 2 fire and enables dynamic light.", "Flame Emitter 2"),
+                    Ocb(1, "Medium flame", "OCB 1 creates a medium Flame Emitter 2 fire without the dynamic-light branch used by OCB 0 and 2.", "Flame Emitter 2"),
+                    Ocb(2, "Moving flame with dynamic light", "OCB 2 skips the normal stationary flame spawn and moves the emitter forward while also using the dynamic-light branch.", "Flame Emitter 2"),
+                    Ocb(3, "Small flame", "OCB 3 creates a smaller Flame Emitter 2 fire.", "Flame Emitter 2"),
+                    Ocb(4, "Tiny flame", "OCB 4 creates a tiny Flame Emitter 2 fire.", "Flame Emitter 2"),
+                    Ocb(123, "Legacy tiny flame", "OCB 123 follows the same tiny-flame size branch as OCB 4.", "Flame Emitter 2"),
+                    Ocb(-1, "Trigger flipmap 1", "Negative OCB values are used as flipmap-trigger values; this preset represents -1. Use the raw value carefully for other flipmap numbers.", "Flame Emitter 2", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial, "Negative values map to flipmap numbers and need exact project-specific review.")
                 });
         }
 
