@@ -62,7 +62,7 @@ namespace TombEditor.Forms
 
             // Disable mesh-specific controls
             var canBeColored = _movable.CanBeColored();
-            Size = new System.Drawing.Size(Size.Width, canBeColored ? 344 : 316);
+            Size = new System.Drawing.Size(Size.Width, listOcbDefinitions.Visible ? (canBeColored ? 344 : 316) : (canBeColored ? 264 : 236));
             lblColor.Visible = canBeColored;
             panelColor.Visible = canBeColored;
             butResetTint.Visible = canBeColored;
@@ -73,32 +73,15 @@ namespace TombEditor.Forms
             _updatingOcbList = true;
             _ocbDefinitions.Clear();
             listOcbDefinitions.Items.Clear();
-
-            bool useReviewedSelector = _editor.Level.IsTombEngine;
-            label1.Text = useReviewedSelector ? "OCB:" : "OCB:";
-            tbOCB.Visible = !useReviewedSelector;
-            listOcbDefinitions.Visible = useReviewedSelector;
-
-            if (!useReviewedSelector)
-            {
-                _updatingOcbList = false;
-                return;
-            }
+            listOcbDefinitions.Visible = false;
+            tbOCB.Visible = true;
+            tbOCB.Text = _movable.Ocb.ToString();
 
             ObjectParameterContext context = ObjectParameterContextFactory.FromObject(_editor.Level, _movable);
-            ObjectParameterDefinitionSet definitionSet = ObjectParameterProviderRegistry.GetDefinitionSets(context).FirstOrDefault(set => set.OcbDefinitions.Count != 0);
+            ObjectParameterDefinitionSet definitionSet = ObjectParameterProviderRegistry.GetDefinitionSets(context).FirstOrDefault(set => HasReviewedOcbEntries(set));
 
             if (definitionSet == null)
             {
-                listOcbDefinitions.Items.Add(new OcbListItem(new ObjectParameterOcbDefinition
-                {
-                    Value = _movable.Ocb,
-                    Name = "Current raw OCB",
-                    Description = "Current raw OCB value.",
-                    Group = "Raw",
-                    Mode = ObjectParameterOcbMode.FixedValue,
-                    MappingStatus = ObjectParameterMappingStatus.Unknown
-                }), true);
                 _updatingOcbList = false;
                 return;
             }
@@ -129,7 +112,17 @@ namespace TombEditor.Forms
             }
 
             tbOCB.Text = CalculateOcbFromList().ToString();
+            tbOCB.Visible = false;
+            listOcbDefinitions.Visible = true;
             _updatingOcbList = false;
+        }
+
+        private static bool HasReviewedOcbEntries(ObjectParameterDefinitionSet definitionSet)
+        {
+            if (definitionSet == null || definitionSet.OcbDefinitions.Count == 0)
+                return false;
+
+            return definitionSet.OcbDefinitions.Any(definition => definition.MappingStatus != ObjectParameterMappingStatus.Unknown || definition.Name != "Current raw OCB");
         }
 
         private static bool IsDefinitionActive(ObjectParameterOcbDefinition definition, short currentOcb)
@@ -171,18 +164,45 @@ namespace TombEditor.Forms
             return (short)value;
         }
 
-        private short GetSelectedOcb()
+        private short CalculateOcbFromListWithPendingChange(int changedIndex, bool checkedState)
         {
-            if (!listOcbDefinitions.Visible)
-            {
-                short ocb;
-                if (!short.TryParse(tbOCB.Text, out ocb))
-                    throw new FormatException();
+            int flags = 0;
+            int? fixedValue = null;
 
-                return ocb;
+            for (int i = 0; i < listOcbDefinitions.Items.Count; i++)
+            {
+                if (!(listOcbDefinitions.Items[i] is OcbListItem item))
+                    continue;
+
+                bool checkedItem = i == changedIndex ? checkedState : listOcbDefinitions.GetItemChecked(i);
+                if (!checkedItem)
+                    continue;
+
+                ObjectParameterOcbDefinition definition = item.Definition;
+                if (definition.Mode == ObjectParameterOcbMode.AdditiveFlags || definition.IsCombinable)
+                    flags |= definition.Value;
+                else
+                    fixedValue = definition.Value;
             }
 
-            return CalculateOcbFromList();
+            int value = fixedValue ?? 0;
+            value |= flags;
+
+            if (value < short.MinValue)
+                return short.MinValue;
+            if (value > short.MaxValue)
+                return short.MaxValue;
+
+            return (short)value;
+        }
+
+        private short GetSelectedOcb()
+        {
+            short ocb;
+            if (!short.TryParse(tbOCB.Text, out ocb))
+                throw new FormatException();
+
+            return ocb;
         }
 
         private void listOcbDefinitions_ItemCheck(object sender, ItemCheckEventArgs e)
@@ -190,7 +210,9 @@ namespace TombEditor.Forms
             if (_updatingOcbList)
                 return;
 
-            BeginInvoke(new Action(() => NormalizeOcbSelection(e.Index, e.NewValue == CheckState.Checked)));
+            bool checkedState = e.NewValue == CheckState.Checked;
+            tbOCB.Text = CalculateOcbFromListWithPendingChange(e.Index, checkedState).ToString();
+            BeginInvoke(new Action(() => NormalizeOcbSelection(e.Index, checkedState)));
         }
 
         private void NormalizeOcbSelection(int changedIndex, bool checkedState)
