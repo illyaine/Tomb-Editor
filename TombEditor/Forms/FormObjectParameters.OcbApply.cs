@@ -25,7 +25,7 @@ namespace TombEditor.Forms
 
             if (_isOcbGridMode)
             {
-                ApplyOcbToObject(CalculateOcbFromGrid());
+                ApplyOcbToObject(GetSelectedOcbValueForSave());
                 return true;
             }
 
