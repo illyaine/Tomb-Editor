@@ -22,14 +22,24 @@ namespace TombLib.LevelData.ObjectParameters
 
             if (slotId >= 850 && slotId <= 879)
                 yield return BuildDoorSet(context);
+            else if (slotId == 817)
+                yield return BuildShootSwitch2Set(context);
             else if ((slotId >= 800 && slotId <= 829) || slotId == 831 || slotId == 832)
                 yield return BuildGenericSwitchSet(context);
             else if (slotId == 830)
                 yield return BuildPulleySet(context);
+            else if (slotId >= 668 && slotId <= 683)
+                yield return BuildPuzzleHoleSet(context);
+            else if (slotId >= 684 && slotId <= 699)
+                yield return BuildPuzzleDoneSet(context);
             else if ((slotId >= 393 && slotId <= 402) || (slotId >= 435 && slotId <= 444))
                 yield return BuildPushableSet(context);
+            else if (slotId == 359)
+                yield return BuildFlameEmitterSet(context);
             else if (slotId == 360)
                 yield return BuildFlameEmitter2Set(context);
+            else if (slotId == 361)
+                yield return BuildFlameEmitter3Set(context);
             else if (slotId == 369)
                 yield return BuildDartEmitterSet(context);
             else if (slotId == 372 || slotId == 373)
@@ -38,6 +48,10 @@ namespace TombLib.LevelData.ObjectParameters
                 yield return BuildCrumblingPlatformSet(context);
             else if (slotId == 1036)
                 yield return BuildLensFlareSet(context);
+            else if (slotId == 1057)
+                yield return BuildEmberEmitterSet(context);
+            else if (slotId == 1089)
+                yield return BuildFireflyEmitterSet(context);
             else if (slotId == 220)
                 yield return BuildWingedMutantSet(context);
             else if (slotId == 232 || slotId == 233)
@@ -104,6 +118,26 @@ namespace TombLib.LevelData.ObjectParameters
                 });
         }
 
+        private static ObjectParameterDefinitionSet BuildShootSwitch2Set(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.generic.switches.shoot_switch2",
+                "TEN OCB: Shoot Switch 2",
+                "Reviewed TEN OCB value for the special Shoot Switch 2 trigger and mesh branch.",
+                ObjectParameterMappingStatus.Mapped,
+                new List<ObjectParameterPreset>
+                {
+                    Preset("normal", "Normal shoot switch", 0),
+                    Preset("special444", "Special trigger and mesh branch", 444)
+                },
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Normal shoot switch", "Default shoot switch behaviour.", "Shoot Switch 2"),
+                    Ocb(444, "Special trigger and mesh branch", "OCB 444 uses the special Shoot Switch 2 trigger test and mesh handling branch.", "Shoot Switch 2")
+                });
+        }
+
         private static ObjectParameterDefinitionSet BuildGenericSwitchSet(ObjectParameterContext context)
         {
             return BuildSet(
@@ -152,6 +186,41 @@ namespace TombLib.LevelData.ObjectParameters
                 });
         }
 
+        private static ObjectParameterDefinitionSet BuildPuzzleHoleSet(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.generic.puzzle_hole",
+                "TEN OCB: Puzzle Hole",
+                "Source-backed OCB values for puzzle-hole interaction animation flow. Some branches remain partial because exact builder-facing wording depends on puzzle setup.",
+                ObjectParameterMappingStatus.Partial,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Normal puzzle use flow", "OCB 0 uses the normal puzzle/key use animation flow.", "Puzzle Hole", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(1, "Animation-after/special flow", "Positive OCB values in the normal range use the animation-after/special flag flow. Use the exact raw value carefully.", "Puzzle Hole", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-1, "Custom Lara animation", "Negative OCB values use the absolute value as Lara animation number.", "Puzzle Hole")
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildPuzzleDoneSet(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.generic.puzzle_done",
+                "TEN OCB: Puzzle Done",
+                "Source-backed OCB values for puzzle-done interaction and collision flow. Some branches remain partial because exact builder-facing wording depends on puzzle setup.",
+                ObjectParameterMappingStatus.Partial,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Normal puzzle done flow", "OCB 0 uses the normal puzzle/key done animation flow.", "Puzzle Done", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(1, "Animation-after/special flow", "Positive OCB values in the normal range use the animation-after/special flag flow. Use the exact raw value carefully.", "Puzzle Done", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(999, "Bypass normal collision", "OCB 999 bypasses the normal object collision path for puzzle done objects.", "Puzzle Done", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-1, "Custom Lara animation", "Negative OCB values use the absolute value as Lara animation number.", "Puzzle Done")
+                });
+        }
+
         private static ObjectParameterDefinitionSet BuildPushableSet(ObjectParameterContext context)
         {
             return BuildSet(
@@ -165,6 +234,25 @@ namespace TombLib.LevelData.ObjectParameters
                 {
                     Ocb(1, "Enable falling behaviour", "Bit 0 / mask 1 enables falling behaviour.", "Pushable objects", true, ObjectParameterOcbMode.AdditiveFlags),
                     Ocb(2, "Disable automatic center alignment", "Bit 1 / mask 2 disables automatic center alignment.", "Pushable objects", true, ObjectParameterOcbMode.AdditiveFlags)
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildFlameEmitterSet(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.effects.flame_emitter",
+                "TEN OCB: Flame Emitter",
+                "Reviewed source-backed Flame Emitter OCB values for normal and jet flame behaviour.",
+                ObjectParameterMappingStatus.Partial,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Normal flame", "Non-negative OCB values use the normal flame path. OCB 0 is the default normal flame.", "Flame Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-1, "Intermittent jet flame", "Negative OCB values select jet flame mode. Values whose absolute value does not end in bit pattern 2 or 7 use intermittent jet flames.", "Flame Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-2, "Constant jet flame", "Absolute OCB value with low bits 2 creates a constant jet flame.", "Flame Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-7, "Constant jet flame alternate", "Absolute OCB value with low bits 7 creates a constant jet flame and is also used by the placement offset branch.", "Flame Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-8, "Timed intermittent jet flame", "Negative OCB values whose absolute value is divisible by 8 use a longer pause timer based on OCB / 8.", "Flame Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial)
                 });
         }
 
@@ -194,6 +282,24 @@ namespace TombLib.LevelData.ObjectParameters
                     Ocb(4, "Tiny flame", "OCB 4 creates a tiny Flame Emitter 2 fire.", "Flame Emitter 2"),
                     Ocb(123, "Legacy tiny flame", "OCB 123 follows the same tiny-flame size branch as OCB 4.", "Flame Emitter 2"),
                     Ocb(-1, "Trigger flipmap 1", "Negative OCB values are used as flipmap-trigger values; this preset represents -1. Use the raw value carefully for other flipmap numbers.", "Flame Emitter 2", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial, "Negative values map to flipmap numbers and need exact project-specific review.")
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildFlameEmitter3Set(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.effects.flame_emitter3",
+                "TEN OCB: Flame Emitter 3",
+                "Reviewed source-backed Flame Emitter 3 OCB values for small fires and electricity arcs.",
+                ObjectParameterMappingStatus.Partial,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Small fire mode", "OCB 0 uses the small fire path.", "Flame Emitter 3"),
+                    Ocb(2, "Forward electricity arc", "OCB 2 projects an electricity arc in front of the emitter.", "Flame Emitter 3", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(3, "Arc to linked Animating3 targets", "OCB values >= 3 link to Animating3 objects with matching TriggerFlags and use them as electricity targets.", "Flame Emitter 3", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(4, "Forward electricity arc alternate", "OCB 4 also projects an electricity arc in front of the emitter.", "Flame Emitter 3", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial)
                 });
         }
 
@@ -259,6 +365,40 @@ namespace TombLib.LevelData.ObjectParameters
                 new List<ObjectParameterOcbDefinition>
                 {
                     Ocb(1, "Fade start radius in blocks", "Raw OCB value is used as fade start radius in blocks.", "Lens flare")
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildEmberEmitterSet(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.effects.ember_emitter",
+                "TEN OCB: Ember Emitter",
+                "Reviewed TEN OCB values for Ember Emitter particle size and area spawning.",
+                ObjectParameterMappingStatus.Mapped,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Default ember size", "OCB 0 uses default ember size 1.0.", "Ember Emitter"),
+                    Ocb(10, "Positive size value", "Positive OCB values are divided by 10.0 and used as ember particle size. OCB 10 means size 1.0.", "Ember Emitter"),
+                    Ocb(-11, "Area/randomized ember spawning", "Negative OCB values use the area/randomized spawning branch and are clamped to at most -11.", "Ember Emitter")
+                });
+        }
+
+        private static ObjectParameterDefinitionSet BuildFireflyEmitterSet(ObjectParameterContext context)
+        {
+            return BuildSet(
+                context,
+                "ten.ocb.effects.firefly_emitter",
+                "TEN OCB: Firefly Emitter",
+                "Source-backed Firefly Emitter OCB values. Positive and negative values alter the generated swarm effect.",
+                ObjectParameterMappingStatus.Partial,
+                new List<ObjectParameterPreset>(),
+                new List<ObjectParameterOcbDefinition>
+                {
+                    Ocb(0, "Default additive fireflies", "OCB 0 uses the normal additive firefly sprite path and default area value.", "Firefly Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(1, "Positive area/range value", "Positive OCB values are clamped into the Firefly area range and use the additive sprite path.", "Firefly Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial),
+                    Ocb(-1, "Negative subtractive effect", "Negative OCB values are clamped into the Firefly area range and use the subtractive sprite path.", "Firefly Emitter", false, ObjectParameterOcbMode.FixedValue, ObjectParameterMappingStatus.Partial)
                 });
         }
 
