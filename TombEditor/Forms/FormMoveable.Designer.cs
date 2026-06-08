@@ -47,13 +47,14 @@ namespace TombEditor.Forms
             panelColor = new System.Windows.Forms.Panel();
             butResetTint = new DarkButton();
             toolTip1 = new System.Windows.Forms.ToolTip(components);
+            listOcbDefinitions = new System.Windows.Forms.CheckedListBox();
             SuspendLayout();
             // 
             // butOK
             // 
             butOK.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butOK.Checked = false;
-            butOK.Location = new System.Drawing.Point(39, 191);
+            butOK.Location = new System.Drawing.Point(39, 271);
             butOK.Name = "butOK";
             butOK.Size = new System.Drawing.Size(80, 23);
             butOK.TabIndex = 8;
@@ -66,7 +67,7 @@ namespace TombEditor.Forms
             butCancel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butCancel.Checked = false;
             butCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            butCancel.Location = new System.Drawing.Point(127, 191);
+            butCancel.Location = new System.Drawing.Point(127, 271);
             butCancel.Name = "butCancel";
             butCancel.Size = new System.Drawing.Size(80, 23);
             butCancel.TabIndex = 9;
@@ -161,7 +162,7 @@ namespace TombEditor.Forms
             lblColor.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             lblColor.AutoSize = true;
             lblColor.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            lblColor.Location = new System.Drawing.Point(8, 167);
+            lblColor.Location = new System.Drawing.Point(8, 247);
             lblColor.Name = "lblColor";
             lblColor.Size = new System.Drawing.Size(30, 13);
             lblColor.TabIndex = 15;
@@ -171,7 +172,7 @@ namespace TombEditor.Forms
             // 
             panelColor.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             panelColor.BackColor = System.Drawing.Color.White;
-            panelColor.Location = new System.Drawing.Point(39, 163);
+            panelColor.Location = new System.Drawing.Point(39, 243);
             panelColor.Name = "panelColor";
             panelColor.Size = new System.Drawing.Size(141, 22);
             panelColor.TabIndex = 16;
@@ -182,7 +183,7 @@ namespace TombEditor.Forms
             butResetTint.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             butResetTint.Checked = false;
             butResetTint.Image = Properties.Resources.general_undo_16;
-            butResetTint.Location = new System.Drawing.Point(185, 163);
+            butResetTint.Location = new System.Drawing.Point(185, 243);
             butResetTint.Name = "butResetTint";
             butResetTint.Size = new System.Drawing.Size(22, 22);
             butResetTint.TabIndex = 17;
@@ -190,13 +191,29 @@ namespace TombEditor.Forms
             toolTip1.SetToolTip(butResetTint, "Reset tint to default");
             butResetTint.Click += butResetTint_Click;
             // 
+            // listOcbDefinitions
+            // 
+            listOcbDefinitions.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            listOcbDefinitions.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
+            listOcbDefinitions.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            listOcbDefinitions.CheckOnClick = true;
+            listOcbDefinitions.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
+            listOcbDefinitions.FormattingEnabled = true;
+            listOcbDefinitions.IntegralHeight = false;
+            listOcbDefinitions.Location = new System.Drawing.Point(39, 135);
+            listOcbDefinitions.Name = "listOcbDefinitions";
+            listOcbDefinitions.Size = new System.Drawing.Size(168, 102);
+            listOcbDefinitions.TabIndex = 18;
+            listOcbDefinitions.ItemCheck += listOcbDefinitions_ItemCheck;
+            // 
             // FormMoveable
             // 
             AcceptButton = butOK;
             AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             CancelButton = butCancel;
-            ClientSize = new System.Drawing.Size(213, 221);
+            ClientSize = new System.Drawing.Size(213, 301);
+            Controls.Add(listOcbDefinitions);
             Controls.Add(butResetTint);
             Controls.Add(panelColor);
             Controls.Add(lblColor);
@@ -242,5 +259,6 @@ namespace TombEditor.Forms
         private System.Windows.Forms.Panel panelColor;
         private DarkButton butResetTint;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.CheckedListBox listOcbDefinitions;
     }
 }
