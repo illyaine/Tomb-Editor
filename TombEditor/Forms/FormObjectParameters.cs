@@ -405,7 +405,7 @@ namespace TombEditor.Forms
                 valueSet.Values.Add(new ObjectParameterValue
                 {
                     ParameterId = "ocb.raw",
-                    Value = CalculateOcbFromGrid().ToString(),
+                    Value = GetSelectedOcbValueForSave().ToString(),
                     Source = SelectedDefinitionSet?.Source ?? ObjectParameterSource.Ocb,
                     MappingStatus = GetMappingStatusFromGrid()
                 });
