@@ -1,21 +1,20 @@
 name: Apply imported geometry lighting fix
 
 on:
-  pull_request:
+  push:
     branches:
-      - master
+      - fix/ten-imported-geometry-lighting
 
 permissions:
   contents: write
 
 jobs:
   apply-fix:
-    if: github.head_ref == 'fix/ten-imported-geometry-lighting'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: fix/ten-imported-geometry-lighting
           fetch-depth: 0
 
       - name: Apply source changes
@@ -170,4 +169,4 @@ jobs:
           git diff --check
           git add TombLib/TombLib/GeometryIO/Importers/Assimp.cs TombLib/TombLib/LevelData/ImportedGeometry.cs TombLib/TombLib/LevelData/Compilers/TombEngine/Rooms.cs
           git commit -m "Fix TEN imported geometry lighting"
-          git push origin HEAD:${{ github.head_ref }}
+          git push origin HEAD:fix/ten-imported-geometry-lighting
