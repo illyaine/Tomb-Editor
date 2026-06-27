@@ -1,0 +1,173 @@
+name: Apply imported geometry lighting fix
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    if: github.head_ref == 'fix/ten-imported-geometry-lighting'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply source changes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              file = Path(path)
+              text = file.read_text(encoding='utf-8-sig')
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, found {count}')
+              file.write_text(text.replace(old, new, 1), encoding='utf-8-sig')
+
+          assimp = 'TombLib/TombLib/GeometryIO/Importers/Assimp.cs'
+          imported_geometry = 'TombLib/TombLib/LevelData/ImportedGeometry.cs'
+          rooms = 'TombLib/TombLib/LevelData/Compilers/TombEngine/Rooms.cs'
+
+          replace_once(
+              assimp,
+              '''                    bool hasColors   = _settings.UseVertexColor && mesh.VertexColorChannelCount > 0 && mesh.HasVertexColors(0);
+                    bool hasNormals  = mesh.HasNormals;
+                    bool hasWeights  = mesh.HasBones && mesh.Bones.Any(b => b.HasVertexWeights);
+''',
+              '''                    bool hasColors   = _settings.UseVertexColor && mesh.VertexColorChannelCount > 0 && mesh.HasVertexColors(0);
+                    bool hasNormals  = mesh.HasNormals &&
+                                       mesh.Normals.Count == mesh.VertexCount &&
+                                       mesh.Normals.All(normal =>
+                                           float.IsFinite(normal.X) &&
+                                           float.IsFinite(normal.Y) &&
+                                           float.IsFinite(normal.Z) &&
+                                           (normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z) > float.Epsilon);
+                    bool hasWeights  = mesh.HasBones && mesh.Bones.Any(b => b.HasVertexWeights);
+''')
+
+          replace_once(
+              assimp,
+              '''                        // Create normal
+                        if (hasNormals)
+                        {
+                            var normal = new Vector3(normals[i].X, normals[i].Y, normals[i].Z);
+                            normal = ApplyAxesTransforms(normal);
+                            newMesh.Normals.Add(normal);
+                        }
+                        else
+                            newMesh.CalculateNormals();
+''',
+              '''                        // Create normal
+                        if (hasNormals)
+                        {
+                            var normal = new Vector3(normals[i].X, normals[i].Y, normals[i].Z);
+                            normal = ApplyAxesTransforms(normal);
+
+                            if (_settings.InvertFaces)
+                                normal = -normal;
+
+                            newMesh.Normals.Add(Vector3.Normalize(normal));
+                        }
+''')
+
+          replace_once(
+              assimp,
+              '''                    }
+
+                    tmpList.Add(newMesh);
+''',
+              '''                    }
+
+                    // Normals can only be calculated after polygons have been imported.
+                    if (!hasNormals)
+                        newMesh.CalculateNormals();
+
+                    tmpList.Add(newMesh);
+''')
+
+          replace_once(
+              imported_geometry,
+              '''                // Make sure we always have correct normals
+                if (mesh.Normals.Count == 0)
+                    mesh.CalculateNormals();
+''',
+              '''                // Make sure imported normals are complete, finite and normalized.
+                if (mesh.Normals.Count != mesh.Positions.Count ||
+                    mesh.Normals.Any(normal =>
+                        !float.IsFinite(normal.X) ||
+                        !float.IsFinite(normal.Y) ||
+                        !float.IsFinite(normal.Z) ||
+                        normal.LengthSquared() <= float.Epsilon))
+                {
+                    mesh.CalculateNormals();
+                }
+
+                for (int i = 0; i < mesh.Normals.Count; i++)
+                    mesh.Normals[i] = Vector3.Normalize(mesh.Normals[i]);
+''')
+
+          replace_once(
+              rooms,
+              '''                                        // Pack the light according to chosen lighting model
+                                        if (geometry.LightingModel == ImportedGeometryLightingModel.VertexColors)
+                                        {
+                                            trVertex.Color = vertex.Color;
+                                        }
+                                        else if (geometry.LightingModel == ImportedGeometryLightingModel.CalculateFromLightsInRoom)
+                                        {
+                                            var color = CalculateLightForCustomVertex(room, position, normal, true, room.Properties.AmbientLight * 128);
+                                            trVertex.Color = color;
+                                        }
+                                        else
+                                        {
+                                            var color = room.Properties.AmbientLight;
+                                            trVertex.Color = color;
+                                        }
+''',
+              '''                                        // Pack light according to the selected model and preserve the instance tint.
+                                        switch (geometry.LightingModel)
+                                        {
+                                            case ImportedGeometryLightingModel.VertexColors:
+                                                trVertex.Color = vertex.Color * geometry.Color;
+                                                break;
+
+                                            case ImportedGeometryLightingModel.CalculateFromLightsInRoom:
+                                                trVertex.Color = CalculateLightForCustomVertex(
+                                                    room,
+                                                    position,
+                                                    normal,
+                                                    true,
+                                                    room.Properties.AmbientLight * geometry.Color * 128.0f);
+                                                break;
+
+                                            case ImportedGeometryLightingModel.TintAsAmbient:
+                                                trVertex.Color = geometry.Color;
+                                                break;
+
+                                            case ImportedGeometryLightingModel.NoLighting:
+                                            default:
+                                                trVertex.Color = room.Properties.AmbientLight * geometry.Color;
+                                                break;
+                                        }
+
+                                        trVertex.Color = Vector3.Max(trVertex.Color, Vector3.Zero);
+''')
+          PY
+
+      - name: Commit source changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --check
+          git add TombLib/TombLib/GeometryIO/Importers/Assimp.cs TombLib/TombLib/LevelData/ImportedGeometry.cs TombLib/TombLib/LevelData/Compilers/TombEngine/Rooms.cs
+          git commit -m "Fix TEN imported geometry lighting"
+          git push origin HEAD:${{ github.head_ref }}
