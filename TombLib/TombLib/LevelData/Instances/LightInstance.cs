@@ -51,7 +51,46 @@ namespace TombLib.LevelData
         public LightQuality Quality
         {
             get { return _quality; }
-            set { _quality = value; }
+            set
+            {
+                if (value == _quality)
+                    return;
+
+                if (value == LightQuality.HDR)
+                {
+                    // PRJ2 stores HDR lights in the existing light record. The loader
+                    // fills the raw backing fields before it reaches the quality byte,
+                    // so decode the transport values at this transition point.
+                    if (_innerAngle <= HDRMarker)
+                    {
+                        HDRPhysicalRange = Math.Max(_innerRange, 0.01f);
+                        HDRSourceSize = Math.Max(_outerRange, 0.01f);
+                        HDRCoreIntensity = Math.Max(HDRMarker - _innerAngle, 0.0f);
+                        HDRHaloIntensity = Math.Max(_outerAngle, 0.0f);
+                        HDRGlareIntensity = Math.Max(Math.Abs(_rotationX) / HDRGlareDegreesPerUnit, 0.0f);
+
+                        var encodedYaw = _rotationY - (float)Math.Floor(_rotationY / 360.0f) * 360.0f;
+                        var modeIndex = Math.Max(0, Math.Min(2, (int)Math.Floor(encodedYaw / HDRModeSectorDegrees)));
+                        HDRMode = (HDRLightMode)modeIndex;
+                        HDRPhysicalIntensity = Math.Max(0.0f, Math.Min(10.0f,
+                            (encodedYaw - modeIndex * HDRModeSectorDegrees) / HDRIntensityDegreesPerUnit));
+                    }
+                }
+                else if (_quality == LightQuality.HDR)
+                {
+                    // Converting an HDR light back to a conventional light should
+                    // yield useful values instead of exposing the transport marker.
+                    _intensity = HDRPhysicalIntensity;
+                    _innerRange = 0.0f;
+                    _outerRange = HDRPhysicalRange;
+                    _innerAngle = 20.0f;
+                    _outerAngle = 25.0f;
+                    _rotationX = 0.0f;
+                    _rotationY = 0.0f;
+                }
+
+                _quality = value;
+            }
         }
 
         public LightType Type
