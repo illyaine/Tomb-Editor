@@ -34,7 +34,7 @@ namespace TombLib.LevelData
     {
         private const float HDRMarker = -0.001f;
         private const float HDRCoreTransportScale = 0.001f;
-        private const float HDRTransportIntensity = 0.000001f;
+        private const float HDRTransportIntensityScale = 0.00000001f;
         private const float HDRModeSectorDegrees = 120.0f;
         private const float HDRIntensityDegreesPerUnit = 10.0f;
         private const float HDRGlareDegreesPerUnit = 10.0f;
@@ -65,7 +65,9 @@ namespace TombLib.LevelData
                     if (_innerAngle <= HDRMarker)
                     {
                         HDRPhysicalRange = Math.Max(_innerRange, 0.01f);
-                        HDRSourceSize = Math.Max(_outerRange, 0.01f);
+                        HDRSourceWidth = Math.Max(_outerRange, 0.01f);
+                        HDRSourceHeight = Math.Max(0.01f, Math.Min(16.0f,
+                            _intensity / HDRTransportIntensityScale - 1.0f));
                         HDRCoreIntensity = Math.Max((HDRMarker - _innerAngle) / HDRCoreTransportScale, 0.0f);
                         HDRHaloIntensity = Math.Max(_outerAngle, 0.0f);
                         HDRGlareIntensity = Math.Max(Math.Abs(_rotationX) / HDRGlareDegreesPerUnit, 0.0f);
@@ -111,7 +113,14 @@ namespace TombLib.LevelData
         // not interpret this record as a physical spotlight.
         public float Intensity
         {
-            get { return IsHDRLight ? HDRTransportIntensity : _intensity; }
+            get
+            {
+                if (!IsHDRLight)
+                    return _intensity;
+
+                var sourceHeight = Math.Max(0.01f, Math.Min(16.0f, HDRSourceHeight));
+                return HDRTransportIntensityScale * (1.0f + sourceHeight);
+            }
             set { _intensity = value; }
         }
 
@@ -123,7 +132,7 @@ namespace TombLib.LevelData
 
         public float OuterRange
         {
-            get { return IsHDRLight ? HDRSourceSize : _outerRange; }
+            get { return IsHDRLight ? HDRSourceWidth : _outerRange; }
             set { _outerRange = value; }
         }
 
@@ -151,12 +160,13 @@ namespace TombLib.LevelData
         public bool IsUsedForImportedGeometry { get; set; } = true;
         public bool CastDynamicShadows { get; set; } = false;
 
-        // TEN HDR-light values shown by the editor. Physical range and source size
-        // are in sectors. Core, halo and glare are independent visible layers.
+        // TEN HDR-light values shown by the editor. Physical range, source width and
+        // source height are in sectors. Core, halo and glare are independent layers.
         public HDRLightMode HDRMode { get; set; } = HDRLightMode.LightAndEffects;
         public float HDRPhysicalIntensity { get; set; } = 1.0f;
         public float HDRPhysicalRange { get; set; } = 5.0f;
-        public float HDRSourceSize { get; set; } = 0.125f;
+        public float HDRSourceWidth { get; set; } = 0.125f;
+        public float HDRSourceHeight { get; set; } = 0.125f;
         public float HDRCoreIntensity { get; set; } = 4.0f;
         public float HDRHaloIntensity { get; set; } = 1.4f;
         public float HDRGlareIntensity { get; set; } = 0.8f;
