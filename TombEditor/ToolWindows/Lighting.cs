@@ -23,20 +23,74 @@ namespace TombEditor.ToolWindows
         private DarkNumericUpDown _numHDRHaloIntensity;
         private DarkNumericUpDown _numHDRGlareIntensity;
         private bool _updatingHDRControls;
+        private bool _updatingLightTypeList;
 
         public Lighting()
         {
+            _editor = Editor.Instance;
+
             InitializeComponent();
             InitializeHDRControls();
-            CommandHandler.AssignCommandsToControls(Editor.Instance, this, toolTip);
+            CommandHandler.AssignCommandsToControls(_editor, this, toolTip);
 
-            foreach (LightType l in Enum.GetValues(typeof(LightType)))
-                cmbLightTypes.Items.Add(l.ToString().SplitCamelcase());
+            RefreshLightTypeList();
+            cmbLightQuality.SelectedIndex = 0;
 
-            cmbLightQuality.SelectedIndex = cmbLightTypes.SelectedIndex = 0;
-
-            _editor = Editor.Instance;
             _editor.EditorEventRaised += EditorEventRaised;
+        }
+
+        private bool IsTENProject =>
+            _editor?.Level?.Settings?.GameVersion == TRVersion.Game.TombEngine;
+
+        private void RefreshLightTypeList(LightInstance selectedLight = null)
+        {
+            var requestedType = selectedLight?.DisplayType ??
+                (cmbLightTypes.SelectedIndex >= 0
+                    ? (LightType)cmbLightTypes.SelectedIndex
+                    : LightType.Point);
+
+            _updatingLightTypeList = true;
+            try
+            {
+                cmbLightTypes.Items.Clear();
+
+                foreach (LightType type in Enum.GetValues(typeof(LightType)))
+                {
+                    if (type == LightType.HDR && !IsTENProject)
+                        continue;
+
+                    cmbLightTypes.Items.Add(type.ToString().SplitCamelcase());
+                }
+
+                if (requestedType == LightType.HDR && !IsTENProject)
+                    cmbLightTypes.SelectedIndex = -1;
+                else if ((int)requestedType >= 0 && (int)requestedType < cmbLightTypes.Items.Count)
+                    cmbLightTypes.SelectedIndex = (int)requestedType;
+                else if (cmbLightTypes.Items.Count > 0)
+                    cmbLightTypes.SelectedIndex = 0;
+            }
+            finally
+            {
+                _updatingLightTypeList = false;
+            }
+        }
+
+        private void SelectVisibleLightType(LightInstance light)
+        {
+            _updatingLightTypeList = true;
+            try
+            {
+                if (light?.IsHDRLight == true && !IsTENProject)
+                    cmbLightTypes.SelectedIndex = -1;
+                else if (light != null && (int)light.DisplayType < cmbLightTypes.Items.Count)
+                    cmbLightTypes.SelectedIndex = (int)light.DisplayType;
+                else if (light == null && cmbLightTypes.SelectedIndex < 0 && cmbLightTypes.Items.Count > 0)
+                    cmbLightTypes.SelectedIndex = 0;
+            }
+            finally
+            {
+                _updatingLightTypeList = false;
+            }
         }
 
         private void InitializeHDRControls()
@@ -179,13 +233,22 @@ namespace TombEditor.ToolWindows
         {
             if (obj is Editor.InitEvent ||
                 obj is Editor.GameVersionChangedEvent ||
+                obj is Editor.LevelChangedEvent)
+            {
+                RefreshLightTypeList(_editor.SelectedObject as LightInstance);
+            }
+
+            if (obj is Editor.InitEvent ||
+                obj is Editor.GameVersionChangedEvent ||
                 obj is Editor.LevelChangedEvent ||
                 obj is Editor.ObjectChangedEvent ||
                 obj is Editor.SelectedObjectChangedEvent)
             {
-                var isTEN = _editor.Level.Settings.GameVersion == TRVersion.Game.TombEngine;
+                var isTEN = IsTENProject;
                 var light = _editor.SelectedObject as LightInstance;
-                var isHDR = isTEN && light?.IsHDRLight == true;
+                var isHDRLight = light?.IsHDRLight == true;
+                var isEditableHDR = isTEN && isHDRLight;
+                var isEditableLight = light != null && (!isHDRLight || isTEN);
 
                 bool hasInRange = false;
                 bool hasOutRange = false;
@@ -197,12 +260,12 @@ namespace TombEditor.ToolWindows
 
                 cmbLightQuality.Enabled = false;
 
-                if (isHDR)
+                if (isEditableHDR)
                 {
                     canCastShadows = true;
                     canCastDynamicShadows = light.HDRMode != HDRLightMode.EffectsOnly;
                 }
-                else if (light != null)
+                else if (light != null && !isHDRLight)
                 {
                     switch (light.Type)
                     {
@@ -248,23 +311,24 @@ namespace TombEditor.ToolWindows
                     }
                 }
 
-                panelLightColor.Enabled = light != null;
-                cbLightEnabled.Enabled = light != null;
-                cbLightIsObstructedByRoomGeometry.Enabled = canCastShadows;
-                cbLightCastsShadow.Enabled = canCastDynamicShadows;
-                cbLightIsDynamicallyUsed.Enabled = canIlluminateGeometry;
-                cbLightIsStaticallyUsed.Enabled = canIlluminateGeometry;
-                cbLightIsUsedForImportedGeometry.Enabled = canIlluminateGeometry;
-                numIntensity.Enabled = light != null && !isHDR;
-                numInnerRange.Enabled = hasInRange;
-                numOuterRange.Enabled = hasOutRange;
-                numInnerAngle.Enabled = hasInOutAngle;
-                numOuterAngle.Enabled = hasInOutAngle;
-                numDirectionY.Enabled = hasDirection;
-                numDirectionX.Enabled = hasDirection;
+                cmbLightTypes.Enabled = light == null || isEditableLight;
+                panelLightColor.Enabled = isEditableLight;
+                cbLightEnabled.Enabled = isEditableLight;
+                cbLightIsObstructedByRoomGeometry.Enabled = isEditableLight && canCastShadows;
+                cbLightCastsShadow.Enabled = isEditableLight && canCastDynamicShadows;
+                cbLightIsDynamicallyUsed.Enabled = isEditableLight && canIlluminateGeometry;
+                cbLightIsStaticallyUsed.Enabled = isEditableLight && canIlluminateGeometry;
+                cbLightIsUsedForImportedGeometry.Enabled = isEditableLight && canIlluminateGeometry;
+                numIntensity.Enabled = isEditableLight && !isHDRLight;
+                numInnerRange.Enabled = isEditableLight && hasInRange;
+                numOuterRange.Enabled = isEditableLight && hasOutRange;
+                numInnerAngle.Enabled = isEditableLight && hasInOutAngle;
+                numOuterAngle.Enabled = isEditableLight && hasInOutAngle;
+                numDirectionY.Enabled = isEditableLight && hasDirection;
+                numDirectionX.Enabled = isEditableLight && hasDirection;
 
                 panelLightColor.BackColor = light != null ? new Vector4(light.Color * 0.5f, 1.0f).ToWinFormsColor() : BackColor;
-                numIntensity.Value = (decimal)(light != null && !isHDR ? light.Intensity : 0);
+                numIntensity.Value = (decimal)(light != null && !isHDRLight ? light.Intensity : 0);
                 numInnerRange.Value = hasInRange ? (decimal)light.InnerRange : 0;
                 numOuterRange.Value = hasOutRange ? (decimal)light.OuterRange : 0;
                 numInnerAngle.Value = hasInOutAngle ? (decimal)light.InnerAngle : 0;
@@ -279,7 +343,7 @@ namespace TombEditor.ToolWindows
                 cbLightIsUsedForImportedGeometry.Checked = light?.IsUsedForImportedGeometry ?? false;
                 cbLightCastsShadow.Checked = light?.CastDynamicShadows ?? false;
 
-                if (light != null && !isHDR)
+                if (light != null && !isHDRLight)
                 {
                     cmbLightQuality.Enabled = true;
                     cmbLightQuality.SelectedIndex = Math.Min((int)light.Quality, cmbLightQuality.Items.Count - 1);
@@ -290,7 +354,7 @@ namespace TombEditor.ToolWindows
                     cmbLightQuality.SelectedIndex = 0;
                 }
 
-                cmbLightTypes.SelectedIndex = (int)(light?.DisplayType ?? (LightType)cmbLightTypes.SelectedIndex);
+                SelectVisibleLightType(light);
                 UpdateHDRControls(light, isTEN);
             }
 
@@ -428,15 +492,25 @@ namespace TombEditor.ToolWindows
 
         private void butAddLight_Click(object sender, EventArgs e)
         {
-            EditorActions.PlaceLight((LightType)cmbLightTypes.SelectedIndex);
-        }
-
-        private void cmbLightTypes_SelectedIndexChanged(object sender, EventArgs e)
-        {
             if (cmbLightTypes.SelectedIndex < 0)
                 return;
 
             var selectedType = (LightType)cmbLightTypes.SelectedIndex;
+            if (selectedType == LightType.HDR && !IsTENProject)
+                return;
+
+            EditorActions.PlaceLight(selectedType);
+        }
+
+        private void cmbLightTypes_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_updatingLightTypeList || cmbLightTypes.SelectedIndex < 0)
+                return;
+
+            var selectedType = (LightType)cmbLightTypes.SelectedIndex;
+            if (selectedType == LightType.HDR && !IsTENProject)
+                return;
+
             EditorActions.UpdateLight<LightType>(
                 (light, value) => light.DisplayType == value,
                 (light, value) =>
