@@ -17,7 +17,8 @@ namespace TombEditor.ToolWindows
         private DarkComboBox _cmbHDRMode;
         private DarkNumericUpDown _numHDRPhysicalIntensity;
         private DarkNumericUpDown _numHDRPhysicalRange;
-        private DarkNumericUpDown _numHDRSourceSize;
+        private DarkNumericUpDown _numHDRSourceWidth;
+        private DarkNumericUpDown _numHDRSourceHeight;
         private DarkNumericUpDown _numHDRCoreIntensity;
         private DarkNumericUpDown _numHDRHaloIntensity;
         private DarkNumericUpDown _numHDRGlareIntensity;
@@ -43,7 +44,7 @@ namespace TombEditor.ToolWindows
             _hdrPanel = new DarkPanel
             {
                 Location = new Point(3, 144),
-                Size = new Size(365, 194),
+                Size = new Size(365, 218),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 Visible = false
             };
@@ -73,10 +74,11 @@ namespace TombEditor.ToolWindows
 
             _numHDRPhysicalIntensity = AddHDRNumeric("Light intensity", 51, 0.0m, 10.0m, 0.05m, 2);
             _numHDRPhysicalRange = AddHDRNumeric("Light range (sectors)", 75, 0.01m, 100.0m, 0.1m, 2);
-            _numHDRSourceSize = AddHDRNumeric("Visible source size", 99, 0.01m, 16.0m, 0.01m, 3);
-            _numHDRCoreIntensity = AddHDRNumeric("Core intensity", 123, 0.0m, 20.0m, 0.1m, 2);
-            _numHDRHaloIntensity = AddHDRNumeric("Halo intensity", 147, 0.0m, 20.0m, 0.1m, 2);
-            _numHDRGlareIntensity = AddHDRNumeric("Glare intensity", 171, 0.0m, 8.0m, 0.1m, 2);
+            _numHDRSourceWidth = AddHDRNumeric("Visible source width", 99, 0.01m, 16.0m, 0.01m, 3);
+            _numHDRSourceHeight = AddHDRNumeric("Visible source height", 123, 0.01m, 16.0m, 0.01m, 3);
+            _numHDRCoreIntensity = AddHDRNumeric("Core intensity", 147, 0.0m, 20.0m, 0.1m, 2);
+            _numHDRHaloIntensity = AddHDRNumeric("Halo intensity", 171, 0.0m, 20.0m, 0.1m, 2);
+            _numHDRGlareIntensity = AddHDRNumeric("Glare intensity", 195, 0.0m, 8.0m, 0.1m, 2);
 
             _numHDRPhysicalIntensity.ValueChanged += (sender, args) => UpdateHDRFloat(
                 light => light.HDRPhysicalIntensity,
@@ -86,10 +88,14 @@ namespace TombEditor.ToolWindows
                 light => light.HDRPhysicalRange,
                 (light, value) => light.HDRPhysicalRange = value,
                 _numHDRPhysicalRange);
-            _numHDRSourceSize.ValueChanged += (sender, args) => UpdateHDRFloat(
-                light => light.HDRSourceSize,
-                (light, value) => light.HDRSourceSize = value,
-                _numHDRSourceSize);
+            _numHDRSourceWidth.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRSourceWidth,
+                (light, value) => light.HDRSourceWidth = value,
+                _numHDRSourceWidth);
+            _numHDRSourceHeight.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRSourceHeight,
+                (light, value) => light.HDRSourceHeight = value,
+                _numHDRSourceHeight);
             _numHDRCoreIntensity.ValueChanged += (sender, args) => UpdateHDRFloat(
                 light => light.HDRCoreIntensity,
                 (light, value) => light.HDRCoreIntensity = value,
@@ -104,8 +110,8 @@ namespace TombEditor.ToolWindows
                 _numHDRGlareIntensity);
 
             Controls.Add(_hdrPanel);
-            MinimumSize = new Size(371, 342);
-            Size = new Size(Math.Max(Width, 371), Math.Max(Height, 342));
+            MinimumSize = new Size(371, 366);
+            Size = new Size(Math.Max(Width, 371), Math.Max(Height, 366));
         }
 
         private void AddHDRLabel(string text, int y)
@@ -161,7 +167,8 @@ namespace TombEditor.ToolWindows
             _cmbHDRMode.SelectedIndex = (int)light.HDRMode;
             _numHDRPhysicalIntensity.Value = ClampToControl(light.HDRPhysicalIntensity, _numHDRPhysicalIntensity);
             _numHDRPhysicalRange.Value = ClampToControl(light.HDRPhysicalRange, _numHDRPhysicalRange);
-            _numHDRSourceSize.Value = ClampToControl(light.HDRSourceSize, _numHDRSourceSize);
+            _numHDRSourceWidth.Value = ClampToControl(light.HDRSourceWidth, _numHDRSourceWidth);
+            _numHDRSourceHeight.Value = ClampToControl(light.HDRSourceHeight, _numHDRSourceHeight);
             _numHDRCoreIntensity.Value = ClampToControl(light.HDRCoreIntensity, _numHDRCoreIntensity);
             _numHDRHaloIntensity.Value = ClampToControl(light.HDRHaloIntensity, _numHDRHaloIntensity);
             _numHDRGlareIntensity.Value = ClampToControl(light.HDRGlareIntensity, _numHDRGlareIntensity);
