@@ -1,5 +1,7 @@
-﻿using DarkUI.Docking;
+﻿using DarkUI.Controls;
+using DarkUI.Docking;
 using System;
+using System.Drawing;
 using System.Numerics;
 using System.Windows.Forms;
 using TombLib.LevelData;
@@ -11,18 +13,126 @@ namespace TombEditor.ToolWindows
     {
         private readonly Editor _editor;
 
+        private DarkPanel _hdrPanel;
+        private DarkComboBox _cmbHDRMode;
+        private DarkNumericUpDown _numHDRPhysicalIntensity;
+        private DarkNumericUpDown _numHDRPhysicalRange;
+        private DarkNumericUpDown _numHDRSourceSize;
+        private DarkNumericUpDown _numHDRCoreIntensity;
+        private DarkNumericUpDown _numHDRHaloIntensity;
+        private DarkNumericUpDown _numHDRGlareIntensity;
+        private bool _updatingHDRControls;
+
         public Lighting()
         {
             InitializeComponent();
+            InitializeHDRControls();
             CommandHandler.AssignCommandsToControls(Editor.Instance, this, toolTip);
 
             foreach (LightType l in Enum.GetValues(typeof(LightType)))
                 cmbLightTypes.Items.Add(l.ToString().SplitCamelcase());
 
-            cmbLightQuality.SelectedIndex = cmbLightTypes.SelectedIndex = 0; // Reset index to default
+            cmbLightQuality.SelectedIndex = cmbLightTypes.SelectedIndex = 0;
 
             _editor = Editor.Instance;
             _editor.EditorEventRaised += EditorEventRaised;
+        }
+
+        private void InitializeHDRControls()
+        {
+            _hdrPanel = new DarkPanel
+            {
+                Location = new Point(3, 144),
+                Size = new Size(365, 194),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Visible = false
+            };
+
+            var title = new DarkLabel
+            {
+                Location = new Point(4, 2),
+                Size = new Size(250, 20),
+                Text = "HDR light effects",
+                Font = new Font("Segoe UI", 8.25f, FontStyle.Bold),
+                ForeColor = Color.Gainsboro
+            };
+            _hdrPanel.Controls.Add(title);
+
+            _cmbHDRMode = new DarkComboBox
+            {
+                Location = new Point(174, 24),
+                Size = new Size(184, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _cmbHDRMode.Items.Add("Light and effects");
+            _cmbHDRMode.Items.Add("Light only");
+            _cmbHDRMode.Items.Add("Effects only");
+            _cmbHDRMode.SelectedIndexChanged += cmbHDRMode_SelectedIndexChanged;
+            AddHDRLabel("Mode", 27);
+            _hdrPanel.Controls.Add(_cmbHDRMode);
+
+            _numHDRPhysicalIntensity = AddHDRNumeric("Light intensity", 51, 0.0m, 10.0m, 0.05m, 2);
+            _numHDRPhysicalRange = AddHDRNumeric("Light range (sectors)", 75, 0.01m, 100.0m, 0.1m, 2);
+            _numHDRSourceSize = AddHDRNumeric("Visible source size", 99, 0.01m, 16.0m, 0.01m, 3);
+            _numHDRCoreIntensity = AddHDRNumeric("Core intensity", 123, 0.0m, 20.0m, 0.1m, 2);
+            _numHDRHaloIntensity = AddHDRNumeric("Halo intensity", 147, 0.0m, 20.0m, 0.1m, 2);
+            _numHDRGlareIntensity = AddHDRNumeric("Glare intensity", 171, 0.0m, 8.0m, 0.1m, 2);
+
+            _numHDRPhysicalIntensity.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRPhysicalIntensity,
+                (light, value) => light.HDRPhysicalIntensity = value,
+                _numHDRPhysicalIntensity);
+            _numHDRPhysicalRange.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRPhysicalRange,
+                (light, value) => light.HDRPhysicalRange = value,
+                _numHDRPhysicalRange);
+            _numHDRSourceSize.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRSourceSize,
+                (light, value) => light.HDRSourceSize = value,
+                _numHDRSourceSize);
+            _numHDRCoreIntensity.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRCoreIntensity,
+                (light, value) => light.HDRCoreIntensity = value,
+                _numHDRCoreIntensity);
+            _numHDRHaloIntensity.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRHaloIntensity,
+                (light, value) => light.HDRHaloIntensity = value,
+                _numHDRHaloIntensity);
+            _numHDRGlareIntensity.ValueChanged += (sender, args) => UpdateHDRFloat(
+                light => light.HDRGlareIntensity,
+                (light, value) => light.HDRGlareIntensity = value,
+                _numHDRGlareIntensity);
+
+            Controls.Add(_hdrPanel);
+            MinimumSize = new Size(371, 342);
+            Size = new Size(Math.Max(Width, 371), Math.Max(Height, 342));
+        }
+
+        private void AddHDRLabel(string text, int y)
+        {
+            _hdrPanel.Controls.Add(new DarkLabel
+            {
+                Location = new Point(4, y),
+                Size = new Size(166, 20),
+                Text = text,
+                ForeColor = Color.Gainsboro
+            });
+        }
+
+        private DarkNumericUpDown AddHDRNumeric(string label, int y, decimal minimum, decimal maximum, decimal increment, int decimalPlaces)
+        {
+            AddHDRLabel(label, y + 3);
+            var control = new DarkNumericUpDown
+            {
+                Location = new Point(174, y),
+                Size = new Size(184, 23),
+                Minimum = minimum,
+                Maximum = maximum,
+                Increment = increment,
+                DecimalPlaces = decimalPlaces
+            };
+            _hdrPanel.Controls.Add(control);
+            return control;
         }
 
         protected override void Dispose(bool disposing)
@@ -34,10 +144,32 @@ namespace TombEditor.ToolWindows
             base.Dispose(disposing);
         }
 
+        private static decimal ClampToControl(float value, NumericUpDown control)
+        {
+            return Math.Max(control.Minimum, Math.Min(control.Maximum, (decimal)value));
+        }
+
+        private void UpdateHDRControls(LightInstance light, bool isTEN)
+        {
+            var isHDR = isTEN && light?.IsHDRLight == true;
+            _hdrPanel.Visible = isHDR;
+            _hdrPanel.Enabled = isHDR;
+            if (!isHDR)
+                return;
+
+            _updatingHDRControls = true;
+            _cmbHDRMode.SelectedIndex = (int)light.HDRMode;
+            _numHDRPhysicalIntensity.Value = ClampToControl(light.HDRPhysicalIntensity, _numHDRPhysicalIntensity);
+            _numHDRPhysicalRange.Value = ClampToControl(light.HDRPhysicalRange, _numHDRPhysicalRange);
+            _numHDRSourceSize.Value = ClampToControl(light.HDRSourceSize, _numHDRSourceSize);
+            _numHDRCoreIntensity.Value = ClampToControl(light.HDRCoreIntensity, _numHDRCoreIntensity);
+            _numHDRHaloIntensity.Value = ClampToControl(light.HDRHaloIntensity, _numHDRHaloIntensity);
+            _numHDRGlareIntensity.Value = ClampToControl(light.HDRGlareIntensity, _numHDRGlareIntensity);
+            _updatingHDRControls = false;
+        }
+
         private void EditorEventRaised(IEditorEvent obj)
         {
-
-            // Update light UI
             if (obj is Editor.InitEvent ||
                 obj is Editor.GameVersionChangedEvent ||
                 obj is Editor.LevelChangedEvent ||
@@ -46,89 +178,92 @@ namespace TombEditor.ToolWindows
             {
                 var isTEN = _editor.Level.Settings.GameVersion == TRVersion.Game.TombEngine;
                 var light = _editor.SelectedObject as LightInstance;
+                var isHDR = isTEN && light?.IsHDRLight == true;
 
-                // Get light type
-                bool HasInRange = false;
-                bool HasOutRange = false;
-                bool HasInOutAngle = false;
-                bool HasDirection = false;
-                bool CanCastShadows = false;
-                bool CanCastDynamicShadows = false;
-                bool CanIlluminateGeometry = false;
+                bool hasInRange = false;
+                bool hasOutRange = false;
+                bool hasInOutAngle = false;
+                bool hasDirection = false;
+                bool canCastShadows = false;
+                bool canCastDynamicShadows = false;
+                bool canIlluminateGeometry = false;
 
                 cmbLightQuality.Enabled = false;
 
-                if (light != null)
+                if (isHDR)
+                {
+                    canCastShadows = true;
+                    canCastDynamicShadows = light.HDRMode != HDRLightMode.EffectsOnly;
+                }
+                else if (light != null)
+                {
                     switch (light.Type)
                     {
                         case LightType.Point:
-                            HasInRange = true;
-                            HasOutRange = true;
-                            CanIlluminateGeometry = true;
-                            CanCastShadows = true;
-                            CanCastDynamicShadows = isTEN;
+                            hasInRange = true;
+                            hasOutRange = true;
+                            canIlluminateGeometry = true;
+                            canCastShadows = true;
+                            canCastDynamicShadows = isTEN;
                             break;
 
                         case LightType.Shadow:
-                            HasInRange = true;
-                            HasOutRange = true;
-                            CanCastShadows = true;
-                            CanIlluminateGeometry = true;
+                            hasInRange = true;
+                            hasOutRange = true;
+                            canCastShadows = true;
+                            canIlluminateGeometry = true;
                             break;
 
                         case LightType.Effect:
-                            HasInRange = true;
-                            HasOutRange = true;
+                            hasInRange = true;
+                            hasOutRange = true;
                             break;
 
                         case LightType.FogBulb:
-                            HasOutRange = true;
+                            hasOutRange = true;
                             break;
 
                         case LightType.Spot:
-                            HasInRange = true;
-                            HasOutRange = true;
-                            HasInOutAngle = true;
-                            HasDirection = true;
-                            CanIlluminateGeometry = true;
-                            CanCastShadows = true;
-                            CanCastDynamicShadows = isTEN;
+                            hasInRange = true;
+                            hasOutRange = true;
+                            hasInOutAngle = true;
+                            hasDirection = true;
+                            canIlluminateGeometry = true;
+                            canCastShadows = true;
+                            canCastDynamicShadows = isTEN;
                             break;
 
                         case LightType.Sun:
-                            HasDirection = true;
-                            CanCastShadows = true;
-                            CanIlluminateGeometry = true;
+                            hasDirection = true;
+                            canCastShadows = true;
+                            canIlluminateGeometry = true;
                             break;
                     }
+                }
 
-                // Update enable state
-                // We set it before the values to make sure that irrelevant values are
-                // not recognized as being changed to 0 in the "ValueChanged" functions.
                 panelLightColor.Enabled = light != null;
                 cbLightEnabled.Enabled = light != null;
-                cbLightIsObstructedByRoomGeometry.Enabled = CanCastShadows;
-                cbLightCastsShadow.Enabled = CanCastDynamicShadows;
-                cbLightIsDynamicallyUsed.Enabled = CanIlluminateGeometry;
-                cbLightIsStaticallyUsed.Enabled = CanIlluminateGeometry;
-                cbLightIsUsedForImportedGeometry.Enabled = CanIlluminateGeometry;
-                numIntensity.Enabled = light != null;
-                numInnerRange.Enabled = HasInRange;
-                numOuterRange.Enabled = HasOutRange;
-                numInnerAngle.Enabled = HasInOutAngle;
-                numOuterAngle.Enabled = HasInOutAngle;
-                numDirectionY.Enabled = HasDirection;
-                numDirectionX.Enabled = HasDirection;
+                cbLightIsObstructedByRoomGeometry.Enabled = canCastShadows;
+                cbLightCastsShadow.Enabled = canCastDynamicShadows;
+                cbLightIsDynamicallyUsed.Enabled = canIlluminateGeometry;
+                cbLightIsStaticallyUsed.Enabled = canIlluminateGeometry;
+                cbLightIsUsedForImportedGeometry.Enabled = canIlluminateGeometry;
+                numIntensity.Enabled = light != null && !isHDR;
+                numInnerRange.Enabled = hasInRange;
+                numOuterRange.Enabled = hasOutRange;
+                numInnerAngle.Enabled = hasInOutAngle;
+                numOuterAngle.Enabled = hasInOutAngle;
+                numDirectionY.Enabled = hasDirection;
+                numDirectionX.Enabled = hasDirection;
 
-                // Update value state
                 panelLightColor.BackColor = light != null ? new Vector4(light.Color * 0.5f, 1.0f).ToWinFormsColor() : BackColor;
-                numIntensity.Value = (decimal)(light?.Intensity ?? 0);
-                numInnerRange.Value = HasInRange ? (decimal)light.InnerRange : 0;
-                numOuterRange.Value = HasOutRange ? (decimal)light.OuterRange : 0;
-                numInnerAngle.Value = HasInOutAngle ? (decimal)light.InnerAngle : 0;
-                numOuterAngle.Value = HasInOutAngle ? (decimal)light.OuterAngle : 0;
-                numDirectionY.Value = HasDirection ? (decimal)light.RotationY : 0;
-                numDirectionX.Value = HasDirection ? (decimal)light.RotationX : 0;
+                numIntensity.Value = (decimal)(light != null && !isHDR ? light.Intensity : 0);
+                numInnerRange.Value = hasInRange ? (decimal)light.InnerRange : 0;
+                numOuterRange.Value = hasOutRange ? (decimal)light.OuterRange : 0;
+                numInnerAngle.Value = hasInOutAngle ? (decimal)light.InnerAngle : 0;
+                numOuterAngle.Value = hasInOutAngle ? (decimal)light.OuterAngle : 0;
+                numDirectionY.Value = hasDirection ? (decimal)light.RotationY : 0;
+                numDirectionX.Value = hasDirection ? (decimal)light.RotationX : 0;
 
                 cbLightEnabled.Checked = light?.Enabled ?? false;
                 cbLightIsObstructedByRoomGeometry.Checked = light?.IsObstructedByRoomGeometry ?? false;
@@ -136,17 +271,49 @@ namespace TombEditor.ToolWindows
                 cbLightIsStaticallyUsed.Checked = light?.IsStaticallyUsed ?? false;
                 cbLightIsUsedForImportedGeometry.Checked = light?.IsUsedForImportedGeometry ?? false;
                 cbLightCastsShadow.Checked = light?.CastDynamicShadows ?? false;
-                cmbLightQuality.Enabled = light != null;
-                cmbLightQuality.SelectedIndex = (int)(light?.Quality ?? 0);
-                cmbLightTypes.SelectedIndex = (int)(light?.Type ?? (LightType)cmbLightTypes.SelectedIndex);
+
+                if (light != null && !isHDR)
+                {
+                    cmbLightQuality.Enabled = true;
+                    cmbLightQuality.SelectedIndex = Math.Min((int)light.Quality, cmbLightQuality.Items.Count - 1);
+                }
+                else
+                {
+                    cmbLightQuality.Enabled = false;
+                    cmbLightQuality.SelectedIndex = 0;
+                }
+
+                cmbLightTypes.SelectedIndex = (int)(light?.DisplayType ?? (LightType)cmbLightTypes.SelectedIndex);
+                UpdateHDRControls(light, isTEN);
             }
 
-            // Update tooltip texts
-            if (obj is Editor.ConfigurationChangedEvent)
+            if (obj is Editor.ConfigurationChangedEvent &&
+                ((Editor.ConfigurationChangedEvent)obj).UpdateKeyboardShortcuts)
             {
-                if (((Editor.ConfigurationChangedEvent)obj).UpdateKeyboardShortcuts)
-                    CommandHandler.AssignCommandsToControls(_editor, this, toolTip, true);
+                CommandHandler.AssignCommandsToControls(_editor, this, toolTip, true);
             }
+        }
+
+        private void UpdateHDRFloat(Func<LightInstance, float> getter, Action<LightInstance, float> setter, DarkNumericUpDown control)
+        {
+            if (_updatingHDRControls || !control.Enabled)
+                return;
+
+            EditorActions.UpdateLight<float>(
+                (light, value) => !light.IsHDRLight || Compare(getter(light), value, control),
+                (light, value) => setter(light, value),
+                light => (float)control.Value);
+        }
+
+        private void cmbHDRMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_updatingHDRControls || _cmbHDRMode.SelectedIndex < 0)
+                return;
+
+            EditorActions.UpdateLight<HDRLightMode>(
+                (light, value) => !light.IsHDRLight || light.HDRMode == value,
+                (light, value) => light.HDRMode = value,
+                light => (HDRLightMode)_cmbHDRMode.SelectedIndex);
         }
 
         private void cbLightEnabled_CheckedChanged(object sender, EventArgs e)
@@ -187,22 +354,16 @@ namespace TombEditor.ToolWindows
 
         private static bool Compare(float firstValue, float secondValue, NumericUpDown control)
         {
-            // Check that this setting even matters for the light...
             if (!control.Enabled)
                 return true;
 
-            // Check if the value differs enough to warrant changing it
-            // We don't want to polute the editor with useless event's because NumericUpDown
-            // decided to round.
             for (int i = 0; i < control.DecimalPlaces; ++i)
             {
                 firstValue *= 10.0f;
                 secondValue *= 10.0f;
             }
 
-            double firstValueDbl = Math.Round(firstValue);
-            double secondValueDbl = Math.Round(secondValue);
-            return firstValueDbl == secondValueDbl;
+            return Math.Round(firstValue) == Math.Round(secondValue);
         }
 
         private void numIntensity_ValueChanged(object sender, EventArgs e)
@@ -254,7 +415,8 @@ namespace TombEditor.ToolWindows
 
         private void cmbLightQualityChanged(object sender, EventArgs e)
         {
-            EditorActions.UpdateLightQuality((LightQuality)cmbLightQuality.SelectedIndex);
+            if (cmbLightQuality.Enabled && cmbLightQuality.SelectedIndex >= 0)
+                EditorActions.UpdateLightQuality((LightQuality)cmbLightQuality.SelectedIndex);
         }
 
         private void butAddLight_Click(object sender, EventArgs e)
@@ -264,7 +426,29 @@ namespace TombEditor.ToolWindows
 
         private void cmbLightTypes_SelectedIndexChanged(object sender, EventArgs e)
         {
-            EditorActions.UpdateLightType((LightType)cmbLightTypes.SelectedIndex);
+            if (cmbLightTypes.SelectedIndex < 0)
+                return;
+
+            var selectedType = (LightType)cmbLightTypes.SelectedIndex;
+            EditorActions.UpdateLight<LightType>(
+                (light, value) => light.DisplayType == value,
+                (light, value) =>
+                {
+                    if (value == LightType.HDR)
+                    {
+                        light.Type = LightType.Spot;
+                        light.Quality = LightQuality.HDR;
+                        light.IsStaticallyUsed = false;
+                        light.IsUsedForImportedGeometry = false;
+                    }
+                    else
+                    {
+                        if (light.IsHDRLight)
+                            light.Quality = LightQuality.Default;
+                        light.Type = value;
+                    }
+                },
+                light => selectedType);
         }
     }
 }
