@@ -32,7 +32,8 @@ namespace TombLib.LevelData
 
     public class LightInstance : PositionBasedObjectInstance, IColorable, IReplaceable, IRotateableYX
     {
-        private const float HDRMarker = -1000.0f;
+        private const float HDRMarker = -0.001f;
+        private const float HDRCoreTransportScale = 0.001f;
         private const float HDRTransportIntensity = 0.000001f;
         private const float HDRModeSectorDegrees = 120.0f;
         private const float HDRIntensityDegreesPerUnit = 10.0f;
@@ -65,7 +66,7 @@ namespace TombLib.LevelData
                     {
                         HDRPhysicalRange = Math.Max(_innerRange, 0.01f);
                         HDRSourceSize = Math.Max(_outerRange, 0.01f);
-                        HDRCoreIntensity = Math.Max(HDRMarker - _innerAngle, 0.0f);
+                        HDRCoreIntensity = Math.Max((HDRMarker - _innerAngle) / HDRCoreTransportScale, 0.0f);
                         HDRHaloIntensity = Math.Max(_outerAngle, 0.0f);
                         HDRGlareIntensity = Math.Max(Math.Abs(_rotationX) / HDRGlareDegreesPerUnit, 0.0f);
 
@@ -106,8 +107,8 @@ namespace TombLib.LevelData
 
         // The existing TEN spot-light record is used as a backwards-compatible
         // transport container until the versioned HDR-light extension block is
-        // available. TEN recognizes the negative inner-angle marker and does not
-        // interpret this record as a physical spotlight.
+        // available. TEN recognizes the tiny negative inner-angle marker and does
+        // not interpret this record as a physical spotlight.
         public float Intensity
         {
             get { return IsHDRLight ? HDRTransportIntensity : _intensity; }
@@ -128,7 +129,12 @@ namespace TombLib.LevelData
 
         public float InnerAngle
         {
-            get { return IsHDRLight ? HDRMarker - Math.Max(HDRCoreIntensity, 0.0f) : _innerAngle; }
+            get
+            {
+                return IsHDRLight
+                    ? HDRMarker - Math.Max(HDRCoreIntensity, 0.0f) * HDRCoreTransportScale
+                    : _innerAngle;
+            }
             set { _innerAngle = value; }
         }
 
@@ -184,7 +190,7 @@ namespace TombLib.LevelData
                 var intensity = Math.Max(0.0f, Math.Min(10.0f, HDRPhysicalIntensity));
                 return mode * HDRModeSectorDegrees + intensity * HDRIntensityDegreesPerUnit;
             }
-            set { _rotationY = (float)(value - Math.Floor(value / 360.0) * 360.0); }
+            set { _rotationY = (float)(value - Math.Floor(value / 360.0f) * 360.0f); }
         }
 
         public LightInstance(LightType type)
