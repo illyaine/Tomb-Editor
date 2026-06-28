@@ -7,9 +7,17 @@ namespace TombLib.LevelData
     {
         Default, Low, Medium, High
     }
+
     public enum LightType : byte
     {
-        Point, Shadow, Spot, Effect, Sun, FogBulb
+        Point, Shadow, Spot, Effect, Sun, FogBulb, HDR
+    }
+
+    public enum HDRLightMode : byte
+    {
+        LightAndEffects,
+        LightOnly,
+        EffectsOnly
     }
 
     public class LightInstance : PositionBasedObjectInstance, IColorable, IReplaceable, IRotateableYX
@@ -29,7 +37,19 @@ namespace TombLib.LevelData
         public bool IsUsedForImportedGeometry { get; set; } = true;
         public bool CastDynamicShadows { get; set; } = false;
 
-        public bool CanCastDynamicShadows => CastDynamicShadows && (Type == LightType.Spot || Type == LightType.Point);
+        // TEN HDR light settings. Sizes are stored in sectors and converted to world
+        // units by the TEN compiler. The three independently configurable effects are
+        // rendered as separate instanced layers by TEN.
+        public HDRLightMode HDRMode { get; set; } = HDRLightMode.LightAndEffects;
+        public float HDRSourceWidth { get; set; } = 0.125f;
+        public float HDRSourceHeight { get; set; } = 0.125f;
+        public float HDRCoreIntensity { get; set; } = 4.0f;
+        public float HDRHaloIntensity { get; set; } = 1.4f;
+        public float HDRGlareIntensity { get; set; } = 0.8f;
+
+        public bool CanCastDynamicShadows => CastDynamicShadows &&
+            (Type == LightType.Spot || Type == LightType.Point ||
+             (Type == LightType.HDR && HDRMode != HDRLightMode.EffectsOnly));
 
         private float _rotationX;
         private float _rotationY;
@@ -62,6 +82,13 @@ namespace TombLib.LevelData
                     break;
                 case LightType.FogBulb:
                     IsObstructedByRoomGeometry = false;
+                    IsStaticallyUsed = false;
+                    IsUsedForImportedGeometry = false;
+                    break;
+                case LightType.HDR:
+                    Intensity = 1.0f;
+                    InnerRange = 0.0f;
+                    OuterRange = 5.0f;
                     IsStaticallyUsed = false;
                     IsUsedForImportedGeometry = false;
                     break;
