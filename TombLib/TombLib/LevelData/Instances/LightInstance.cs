@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Numerics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace TombLib.LevelData
 {
@@ -32,6 +34,7 @@ namespace TombLib.LevelData
 
     public class LightInstance : PositionBasedObjectInstance, IColorable, IReplaceable, IRotateableYX
     {
+        private const string TombEditorAssemblyName = "TombEditor";
         private const float HDRMarker = -0.001f;
         private const float HDRCoreTransportScale = 0.001f;
         private const float HDRTransportIntensityScale = 0.00000001f;
@@ -98,8 +101,23 @@ namespace TombLib.LevelData
 
         public LightType Type
         {
-            get { return _type; }
-            set { _type = value; }
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            get
+            {
+                // Keep the transport type private to TombLib. TombEditor itself sees
+                // HDR as a real editor type, while PRJ2 and all compilers continue to
+                // receive the compatible Spot record used by the current file format.
+                if (IsHDRLight &&
+                    string.Equals(Assembly.GetCallingAssembly().GetName().Name,
+                        TombEditorAssemblyName,
+                        StringComparison.Ordinal))
+                {
+                    return LightType.HDR;
+                }
+
+                return _type;
+            }
+            set { _type = value == LightType.HDR ? LightType.Spot : value; }
         }
 
         public bool IsHDRLight => Quality == LightQuality.HDR;
@@ -216,14 +234,14 @@ namespace TombLib.LevelData
                 // Keep the serialized base type compatible with the existing TEN
                 // room-light compiler. LightQuality.HDR and the angle marker retain
                 // the editor identity and identify the record to TEN.
-                Type = LightType.Spot;
+                _type = LightType.Spot;
                 Quality = LightQuality.HDR;
                 IsStaticallyUsed = false;
                 IsUsedForImportedGeometry = false;
                 return;
             }
 
-            Type = type;
+            _type = type;
             switch (type)
             {
                 case LightType.Shadow:
