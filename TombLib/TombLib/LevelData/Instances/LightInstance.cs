@@ -104,6 +104,12 @@ namespace TombLib.LevelData
 
         public bool IsHDRLight => Quality == LightQuality.HDR;
         public LightType DisplayType => IsHDRLight ? LightType.HDR : Type;
+        public string DisplayName => IsHDRLight ? "HDR Light" : Type + " Light";
+
+        public bool IsAvailableForGameVersion(TRVersion.Game gameVersion)
+        {
+            return !IsHDRLight || gameVersion == TRVersion.Game.TombEngine;
+        }
 
         public Vector3 Color { get; set; } = new Vector3(1.0f, 1.0f, 1.0f);
 
@@ -238,9 +244,14 @@ namespace TombLib.LevelData
             }
         }
 
+        public string ShortName()
+        {
+            return DisplayName;
+        }
+
         public override string ToString()
         {
-            return "Light " + DisplayType +
+            return DisplayName +
                 ", X = " + WorldPosition.X +
                 ", Y = " + -WorldPosition.Y +
                 ", Z = " + WorldPosition.Z;
