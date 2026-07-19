@@ -52,7 +52,7 @@ namespace TombEditor.Forms
             }
 
             _editor.Action = new EditorActionPlace(false,
-                (level, room) => EffectBoxUtils.Create(level.Settings));
+                (level, room) => EffectBoxDefinitionUtils.CreateInstance(level.Settings));
         }
 
         private void EffectBoxMenu_EditorEventRaised(IEditorEvent editorEvent)
