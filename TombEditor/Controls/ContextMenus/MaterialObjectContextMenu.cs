@@ -44,8 +44,7 @@ namespace TombEditor.Controls.ContextMenus
 
                 Items.Add(new ToolStripMenuItem("Edit assigned effect...", Properties.Resources.general_edit_16, (o, e) =>
                 {
-                    using (var form = new FormEffectBoxEditor(volume))
-                        form.ShowDialog(owner);
+                    TombEditor.EffectBoxEditorLauncher.Show(owner, volume);
                 }));
             }
             else if (!(targetObject is LightInstance || targetObject is GhostBlockInstance))
