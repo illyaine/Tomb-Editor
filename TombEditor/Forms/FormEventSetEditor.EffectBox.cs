@@ -8,18 +8,18 @@ namespace TombEditor.Forms
 {
     public partial class FormEventSetEditor
     {
+        private bool _effectBoxAssignmentMode;
+
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
 
-            if (_instance != null && _instance.IsEffectBox())
-            {
-                BeginInvoke(new Action(OpenEffectBoxEditor));
-                return;
-            }
-
             if (GlobalMode)
                 return;
+
+            _effectBoxAssignmentMode = _instance != null && _instance.IsEffectBox();
+            if (_effectBoxAssignmentMode)
+                InitializeEffectBoxAssignmentMode();
 
             dgvEvents.RowsAdded += EffectBoxRowsAdded;
             dgvEvents.SelectionChanged += EffectBoxSelectionChanged;
@@ -27,18 +27,41 @@ namespace TombEditor.Forms
             QueueEffectBoxRowRefresh();
         }
 
-        private void OpenEffectBoxEditor()
+        private void InitializeEffectBoxAssignmentMode()
         {
-            if (IsDisposed || _instance == null || !_instance.IsEffectBox())
-                return;
+            Text = "Assign Effect Box definition";
+            panelList.SectionHeader = "Project effect definitions";
+            panelEditor.SectionHeader = "Definition preview";
+            panelActivators.Visible = false;
+            dgvEvents.AllowUserToDragDropRows = false;
 
-            var owner = Owner as IWin32Window;
-            Hide();
+            if (dgvEvents.Columns.Count > 0)
+                dgvEvents.Columns[0].HeaderText = "Effect definitions";
 
-            using (var form = new FormEffectBoxEditor(_instance))
-                DialogResult = form.ShowDialog(owner);
+            butNewEventSet.Click -= butNewEventSet_Click;
+            butCloneEventSet.Click -= butCloneEventSet_Click;
+            butDeleteEventSet.Click -= butDeleteEventSet_Click;
+            butUnassignEventSet.Click -= butUnassignEventSet_Click;
 
-            Close();
+            butNewEventSet.Click += EffectBoxNewDefinition_Click;
+            butCloneEventSet.Click += EffectBoxCloneDefinition_Click;
+            butDeleteEventSet.Click += EffectBoxDeleteDefinition_Click;
+            butUnassignEventSet.Click += EffectBoxEditDefinition_Click;
+
+            butNewEventSet.DialogResult = DialogResult.None;
+            butCloneEventSet.DialogResult = DialogResult.None;
+            butDeleteEventSet.DialogResult = DialogResult.None;
+            butUnassignEventSet.DialogResult = DialogResult.None;
+
+            butUnassignEventSet.Image = Properties.Resources.general_edit_16;
+            toolTip.SetToolTip(butNewEventSet, "Create a new project-wide Effect Box definition");
+            toolTip.SetToolTip(butCloneEventSet, "Copy the selected Effect Box definition");
+            toolTip.SetToolTip(butDeleteEventSet, "Delete the selected definition and reassign its boxes");
+            toolTip.SetToolTip(butUnassignEventSet, "Edit the selected definition");
+
+            triggerManager.Enabled = false;
+            cbEvents.Enabled = false;
+            tbName.Enabled = false;
         }
 
         private void EffectBoxRowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
@@ -48,8 +71,22 @@ namespace TombEditor.Forms
 
         private void EffectBoxSelectionChanged(object sender, EventArgs e)
         {
-            if (IsHandleCreated && !IsDisposed)
-                BeginInvoke(new Action(UpdateEffectBoxSelectionState));
+            if (!IsHandleCreated || IsDisposed)
+                return;
+
+            BeginInvoke(new Action(() =>
+            {
+                if (_effectBoxAssignmentMode &&
+                    SelectedSet is VolumeEventSet selectedDefinition &&
+                    EffectBoxUtils.IsEffectBoxEventSet(selectedDefinition))
+                {
+                    _instance.EventSet = selectedDefinition;
+                    _editor.ObjectChange(_instance, ObjectChangeType.Change);
+                    RefreshEffectBoxRows();
+                }
+
+                UpdateEffectBoxSelectionState();
+            }));
         }
 
         private void EffectBoxCellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -58,14 +95,112 @@ namespace TombEditor.Forms
                 return;
 
             var eventSet = dgvEvents.Rows[e.RowIndex].Tag as EventSet;
+            if (!EffectBoxUtils.IsEffectBoxEventSet(eventSet))
+                return;
+
+            if (_effectBoxAssignmentMode)
+            {
+                SelectedSet = eventSet;
+                EditSelectedEffectDefinition();
+                return;
+            }
+
             var effectBox = FindEffectBox(eventSet);
             if (effectBox == null)
                 return;
 
-            using (var form = new FormEffectBoxEditor(effectBox))
-                form.ShowDialog(this);
-
+            TombEditor.EffectBoxEditorLauncher.Show(this, effectBox);
             RefreshEffectBoxRows();
+            UpdateEffectBoxSelectionState();
+        }
+
+        private void EffectBoxNewDefinition_Click(object sender, EventArgs e)
+        {
+            if (!_effectBoxAssignmentMode)
+                return;
+
+            var definition = EffectBoxDefinitionUtils.CreateDefinition(_editor.Level.Settings);
+            PopulateEventSetList();
+            RefreshEffectBoxRows();
+            SelectedSet = definition;
+            EditSelectedEffectDefinition();
+        }
+
+        private void EffectBoxCloneDefinition_Click(object sender, EventArgs e)
+        {
+            if (!_effectBoxAssignmentMode || SelectedSet is not VolumeEventSet source ||
+                !EffectBoxUtils.IsEffectBoxEventSet(source))
+                return;
+
+            var clone = EffectBoxDefinitionUtils.CloneDefinition(_editor.Level.Settings, source);
+            PopulateEventSetList();
+            RefreshEffectBoxRows();
+            SelectedSet = clone;
+            _editor.EventSetsChange();
+        }
+
+        private void EffectBoxDeleteDefinition_Click(object sender, EventArgs e)
+        {
+            if (!_effectBoxAssignmentMode || SelectedSet is not VolumeEventSet selected ||
+                !EffectBoxUtils.IsEffectBoxEventSet(selected))
+                return;
+
+            var definitions = EffectBoxDefinitionUtils.GetDefinitions(_editor.Level.Settings);
+            if (definitions.Count <= 1)
+            {
+                MessageBox.Show(this,
+                    "The last Effect Box definition cannot be deleted. Create another definition first.",
+                    "Delete Effect Box definition", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var affectedBoxes = _editor.Level.GetAllObjects()
+                .OfType<VolumeInstance>()
+                .Where(volume => ReferenceEquals(volume.EventSet, selected))
+                .ToList();
+
+            if (MessageBox.Show(this,
+                    "Delete this project-wide effect definition? " + affectedBoxes.Count +
+                    (affectedBoxes.Count == 1 ? " placed box will" : " placed boxes will") +
+                    " be reassigned to another definition.",
+                    "Delete Effect Box definition", MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            var replacement = definitions.First(definition => !ReferenceEquals(definition, selected));
+            foreach (var volume in affectedBoxes)
+            {
+                volume.EventSet = replacement;
+                _editor.ObjectChange(volume, ObjectChangeType.Change);
+            }
+
+            _editor.Level.Settings.VolumeEventSets.Remove(selected);
+            PopulateEventSetList();
+            RefreshEffectBoxRows();
+            SelectedSet = replacement;
+            _editor.EventSetsChange();
+        }
+
+        private void EffectBoxEditDefinition_Click(object sender, EventArgs e)
+        {
+            if (_effectBoxAssignmentMode)
+                EditSelectedEffectDefinition();
+        }
+
+        private void EditSelectedEffectDefinition()
+        {
+            if (!_effectBoxAssignmentMode || _instance == null ||
+                SelectedSet is not VolumeEventSet definition ||
+                !EffectBoxUtils.IsEffectBoxEventSet(definition))
+                return;
+
+            _instance.EventSet = definition;
+            _editor.ObjectChange(_instance, ObjectChangeType.Change);
+            TombEditor.EffectBoxEditorLauncher.Show(this, _instance);
+
+            PopulateEventSetList();
+            RefreshEffectBoxRows();
+            SelectedSet = _instance.EventSet;
             UpdateEffectBoxSelectionState();
         }
 
@@ -86,20 +221,41 @@ namespace TombEditor.Forms
             if (IsDisposed)
                 return;
 
+            if (_effectBoxAssignmentMode)
+            {
+                _lockSelectionChange = true;
+                for (int index = dgvEvents.Rows.Count - 1; index >= 0; index--)
+                {
+                    var rowSet = dgvEvents.Rows[index].Tag as EventSet;
+                    if (!EffectBoxUtils.IsEffectBoxEventSet(rowSet))
+                        dgvEvents.Rows.RemoveAt(index);
+                }
+                _lockSelectionChange = false;
+            }
+
+            int definitionIndex = 0;
             foreach (DataGridViewRow row in dgvEvents.Rows)
             {
                 var eventSet = row.Tag as EventSet;
-                var effectBox = FindEffectBox(eventSet);
-                if (effectBox == null)
+                if (!EffectBoxUtils.IsEffectBoxEventSet(eventSet))
                     continue;
 
-                string name = string.IsNullOrWhiteSpace(effectBox.LuaName)
-                    ? "Effect box graph"
-                    : "Effect box graph — " + effectBox.LuaName;
+                definitionIndex++;
+                var graph = (eventSet as VolumeEventSet)?.Events[EventType.OnVolumeInside];
+                var firstRoot = graph?.Nodes.FirstOrDefault();
+                var name = firstRoot != null && !string.IsNullOrWhiteSpace(firstRoot.Name)
+                    ? firstRoot.Name
+                    : "Effect definition " + definitionIndex;
 
-                row.Cells[0].Value = name;
-                row.Cells[0].ToolTipText = "Managed by the Effect Box Editor. Double-click to open it.";
-                row.DefaultCellStyle.ForeColor = Color.Goldenrod;
+                int usageCount = _editor.Level.GetAllObjects()
+                    .OfType<VolumeInstance>()
+                    .Count(volume => ReferenceEquals(volume.EventSet, eventSet));
+                bool assigned = _instance != null && ReferenceEquals(_instance.EventSet, eventSet);
+
+                row.Cells[0].Value = (assigned ? "● " : string.Empty) + name + " — " + usageCount +
+                    (usageCount == 1 ? " placed box" : " placed boxes");
+                row.Cells[0].ToolTipText = "Project-wide Effect Box definition. Double-click to edit it.";
+                row.DefaultCellStyle.ForeColor = assigned ? Color.Gold : Color.Goldenrod;
                 row.DefaultCellStyle.SelectionForeColor = Color.Gold;
             }
         }
@@ -112,7 +268,27 @@ namespace TombEditor.Forms
             var selectedEventSet = dgvEvents.SelectedRows.Count == 0
                 ? null
                 : dgvEvents.SelectedRows[0].Tag as EventSet;
-            bool managed = FindEffectBox(selectedEventSet) != null;
+            bool managed = EffectBoxUtils.IsEffectBoxEventSet(selectedEventSet);
+
+            if (_effectBoxAssignmentMode)
+            {
+                butNewEventSet.Enabled = true;
+                butCloneEventSet.Enabled = managed;
+                butDeleteEventSet.Enabled = managed &&
+                    EffectBoxDefinitionUtils.GetDefinitions(_editor.Level.Settings).Count > 1;
+                butUnassignEventSet.Enabled = managed;
+
+                tbName.Enabled = false;
+                triggerManager.Enabled = false;
+                cbEvents.Enabled = false;
+                cbActivatorLara.Enabled = false;
+                cbActivatorNPC.Enabled = false;
+                cbActivatorOtherMoveables.Enabled = false;
+                cbActivatorStatics.Enabled = false;
+                cbActivatorFlyBy.Enabled = false;
+                lblActivators.Enabled = false;
+                return;
+            }
 
             if (!managed)
             {
@@ -152,6 +328,14 @@ namespace TombEditor.Forms
                 dgvEvents.RowsAdded -= EffectBoxRowsAdded;
                 dgvEvents.SelectionChanged -= EffectBoxSelectionChanged;
                 dgvEvents.CellDoubleClick -= EffectBoxCellDoubleClick;
+            }
+
+            if (_effectBoxAssignmentMode)
+            {
+                butNewEventSet.Click -= EffectBoxNewDefinition_Click;
+                butCloneEventSet.Click -= EffectBoxCloneDefinition_Click;
+                butDeleteEventSet.Click -= EffectBoxDeleteDefinition_Click;
+                butUnassignEventSet.Click -= EffectBoxEditDefinition_Click;
             }
 
             base.OnHandleDestroyed(e);
