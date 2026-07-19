@@ -11,11 +11,15 @@ namespace TombEditor.ToolWindows
         private ToolStripButton _butAddEffectBox;
         private bool _effectBoxToolbarInitialized;
 
-        protected override void OnCreateControl()
+        protected override void OnLoad(EventArgs e)
         {
-            base.OnCreateControl();
+            base.OnLoad(e);
+            InitializeEffectBoxToolbar();
+        }
 
-            if (_effectBoxToolbarInitialized)
+        private void InitializeEffectBoxToolbar()
+        {
+            if (_effectBoxToolbarInitialized || _editor == null)
                 return;
 
             _effectBoxToolbarInitialized = true;
