@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
-using TombEditor.Forms;
 using TombLib.Graphics;
 using TombLib.LevelData;
 
@@ -21,8 +20,7 @@ namespace TombEditor.Controls.Panel3D
                     var pickedObject = ((PickingResultObject)newPicking).ObjectInstance;
                     if (pickedObject is VolumeInstance volume && volume.IsEffectBox())
                     {
-                        using (var form = new FormEventSetEditor(false, volume))
-                            form.ShowDialog(Parent);
+                        EffectBoxEditorLauncher.Show(Parent, volume);
                     }
                     else
                     {
@@ -45,7 +43,6 @@ namespace TombEditor.Controls.Panel3D
                             newlySelectedRooms.Add(pickedRoom);
 
                         _editor.SelectRooms(newlySelectedRooms);
-
                     }
                     else
                     {
@@ -57,7 +54,6 @@ namespace TombEditor.Controls.Panel3D
                             AnimateCamera(nextPos);
                         }
                     }
-
                 }
             }
         }
