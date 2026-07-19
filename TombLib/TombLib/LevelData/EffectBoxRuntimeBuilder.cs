@@ -119,14 +119,22 @@ namespace TombLib.LevelData
 
         private static string GetStableIdentifier(BoxVolumeInstance effectBox)
         {
+            string definitionIdentifier = "definition";
             if (effectBox.EventSet != null &&
                 !string.IsNullOrWhiteSpace(effectBox.EventSet.Name) &&
                 effectBox.EventSet.Name.StartsWith(EffectBoxUtils.EventSetPrefix, StringComparison.Ordinal))
             {
-                return effectBox.EventSet.Name.Substring(EffectBoxUtils.EventSetPrefix.Length);
+                definitionIdentifier = effectBox.EventSet.Name.Substring(EffectBoxUtils.EventSetPrefix.Length);
             }
 
-            return unchecked((uint)effectBox.GetHashCode()).ToString();
+            // Definitions are intentionally shared by many placed boxes. The persistent and
+            // unique Lua name keeps generated event-set names and interval state independent
+            // for every placement while retaining the definition identity for diagnostics.
+            string instanceIdentifier = !string.IsNullOrWhiteSpace(effectBox.LuaName)
+                ? effectBox.LuaName
+                : unchecked((uint)effectBox.GetHashCode()).ToString();
+
+            return definitionIdentifier + "_" + instanceIdentifier;
         }
     }
 }
