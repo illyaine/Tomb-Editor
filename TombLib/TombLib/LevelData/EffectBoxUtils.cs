@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -8,13 +8,13 @@ using TombLib.Utils;
 namespace TombLib.LevelData
 {
     /// <summary>
-    /// Defines the editor-side contract for TEN effect boxes.
+    /// Defines the editor-side contract for TEN Effect Boxes.
     ///
-    /// Effect boxes intentionally reuse box-volume transforms and the existing event/node
-    /// serialization. Their private event set is marked with a reserved prefix, has no
-    /// activators and stores its graph in a disabled event. Consequently, the current
-    /// runtime cannot execute the graph accidentally. This keeps the authoring data
-    /// persistent while leaving a clean integration point for the dedicated runtime system.
+    /// Effect Boxes reuse box-volume transforms and existing event/node serialization.
+    /// Their private volume event set stores the authoring graph and has no activators, so
+    /// it cannot behave like a normal trigger volume. During TEN compilation, supported
+    /// Effect Box nodes are converted into temporary global loop events. The project data
+    /// stays editor-owned and TombEngine requires no dedicated Effect Box object type.
     /// </summary>
     public static class EffectBoxUtils
     {
@@ -93,7 +93,9 @@ namespace TombLib.LevelData
         {
             return ScriptingUtils.NodeFunctions
                 .Where(IsEffectFunction)
-                .OrderBy(function => function.Section)
+                .OrderByDescending(function =>
+                    string.Equals(function.Signature, EffectBoxRuntimeBuilder.ParticleEmitterFunction, StringComparison.Ordinal))
+                .ThenBy(function => function.Section)
                 .ThenBy(function => function.Name)
                 .ToList();
         }
@@ -117,6 +119,11 @@ namespace TombLib.LevelData
             if (function == null)
                 throw new ArgumentNullException(nameof(function));
 
+            bool isRuntimeEmitter = string.Equals(
+                function.Signature,
+                EffectBoxRuntimeBuilder.ParticleEmitterFunction,
+                StringComparison.Ordinal);
+
             var node = new TriggerNodeAction
             {
                 Name = string.IsNullOrWhiteSpace(function.Name)
@@ -124,7 +131,9 @@ namespace TombLib.LevelData
                     : function.Name,
                 Function = function.Signature,
                 Size = TriggerNode.DefaultSize,
-                Color = new Vector3(0.48f, 0.39f, 0.08f)
+                Color = isRuntimeEmitter
+                    ? new Vector3(0.62f, 0.48f, 0.06f)
+                    : new Vector3(0.48f, 0.39f, 0.08f)
             };
 
             node.FixArguments(function);
