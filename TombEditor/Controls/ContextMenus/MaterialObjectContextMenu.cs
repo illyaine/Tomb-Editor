@@ -36,14 +36,20 @@ namespace TombEditor.Controls.ContextMenus
 
             if (targetObject is VolumeInstance volume && volume.IsEffectBox())
             {
-                Items.Add(new ToolStripMenuItem("Edit effect box...", Properties.Resources.general_edit_16, (o, e) =>
+                Items.Add(new ToolStripMenuItem("Assign effect definition...", Properties.Resources.general_copy_link_16, (o, e) =>
+                {
+                    using (var form = new FormEventSetEditor(false, volume))
+                        form.ShowDialog(owner);
+                }));
+
+                Items.Add(new ToolStripMenuItem("Edit assigned effect...", Properties.Resources.general_edit_16, (o, e) =>
                 {
                     using (var form = new FormEffectBoxEditor(volume))
                         form.ShowDialog(owner);
                 }));
             }
             else if (!(targetObject is LightInstance || targetObject is GhostBlockInstance))
-            { 
+            {
                 Items.Add(new ToolStripMenuItem("Edit object", Properties.Resources.general_edit_16, (o, e) =>
                 {
                     EditorActions.EditObject(targetObject, owner);
@@ -201,7 +207,6 @@ namespace TombEditor.Controls.ContextMenus
                 }));
             }
 
-            // Get all triggers pointing to target object
             var triggers = _editor.Level.GetAllTriggersPointingToObject(targetObject);
             if (triggers.Count != 0)
             {
@@ -221,9 +226,6 @@ namespace TombEditor.Controls.ContextMenus
                     Items.Add(triggerItem);
                 }
             }
-
-            if (Items[Items.Count - 1] is ToolStripSeparator)
-                Items.RemoveAt(Items.Count - 1);
         }
     }
 }
