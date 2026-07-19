@@ -77,7 +77,7 @@ namespace TombEditor.Controls.ContextMenus
 
             if (_editor.Level.IsTombEngine)
             {
-                Items.Add(new ToolStripMenuItem("Add effect box...", Properties.Resources.objects_volume_box_16, (o, e) =>
+                Items.Add(new ToolStripMenuItem("Add effect box...", EffectBoxIcon.Image16, (o, e) =>
                 {
                     var effectBox = EffectBoxUtils.Create(editor.Level.Settings);
                     EditorActions.PlaceObject(targetRoom, targetSector, effectBox);
