@@ -62,7 +62,7 @@ namespace TombEditor.Forms
         private void UpdateEffectBoxMenuState()
         {
             if (_addEffectBoxToolStripMenuItem != null)
-                _addEffectBoxToolStripMenuItem.Enabled = _editor.Level != null && _editor.Level.IsTombEngine;
+                _addEffectBoxToolStripMenuItem.Visible = _editor.Level != null && _editor.Level.IsTombEngine;
         }
 
         private void FormMainEffectBox_Disposed(object sender, EventArgs e)
