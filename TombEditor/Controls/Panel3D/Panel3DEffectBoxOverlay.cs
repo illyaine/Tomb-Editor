@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using TombLib.LevelData;
 
@@ -10,229 +11,240 @@ namespace TombEditor.Controls.Panel3D
 {
     public partial class Panel3D
     {
-        private EffectBoxOverlay _effectBoxOverlay;
+        private EffectBoxOverlayWindow _effectBoxOverlayWindow;
 
+        /// <summary>
+        /// Installs a post-present overlay which distinguishes effect boxes from ordinary
+        /// trigger volumes without changing the existing volume renderer.
+        /// </summary>
         internal void InitializeEffectBoxOverlay()
         {
-            if (_effectBoxOverlay != null ||
+            if (_effectBoxOverlayWindow != null || IsDisposed ||
                 System.ComponentModel.LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Runtime)
                 return;
 
-            _effectBoxOverlay = new EffectBoxOverlay(this)
-            {
-                Dock = DockStyle.Fill
-            };
-            Controls.Add(_effectBoxOverlay);
-            _effectBoxOverlay.BringToFront();
+            _effectBoxOverlayWindow = new EffectBoxOverlayWindow(this);
+            Disposed += Panel3DEffectBoxOverlay_Disposed;
         }
 
-        private sealed class EffectBoxOverlay : Control
+        private void Panel3DEffectBoxOverlay_Disposed(object sender, EventArgs e)
         {
-            private const int WmNcHitTest = 0x0084;
-            private static readonly IntPtr HtTransparent = new IntPtr(-1);
+            Disposed -= Panel3DEffectBoxOverlay_Disposed;
+            _effectBoxOverlayWindow?.Dispose();
+            _effectBoxOverlayWindow = null;
+        }
 
-            private static readonly Vector3[] Corners =
+        private sealed class EffectBoxOverlayWindow : NativeWindow, IDisposable
+        {
+            private const int WmPaint = 0x000F;
+
+            private static readonly int[][] Faces =
             {
-                new Vector3(-0.5f, -0.5f, -0.5f),
-                new Vector3( 0.5f, -0.5f, -0.5f),
-                new Vector3( 0.5f,  0.5f, -0.5f),
-                new Vector3(-0.5f,  0.5f, -0.5f),
-                new Vector3(-0.5f, -0.5f,  0.5f),
-                new Vector3( 0.5f, -0.5f,  0.5f),
-                new Vector3( 0.5f,  0.5f,  0.5f),
-                new Vector3(-0.5f,  0.5f,  0.5f)
+                new[] { 0, 1, 3, 2 },
+                new[] { 4, 5, 7, 6 },
+                new[] { 0, 1, 5, 4 },
+                new[] { 2, 3, 7, 6 },
+                new[] { 0, 2, 6, 4 },
+                new[] { 1, 3, 7, 5 }
             };
 
-            private static readonly int[,] Edges =
+            private static readonly (int A, int B)[] Edges =
             {
-                { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 },
-                { 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 },
-                { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
-            };
-
-            private static readonly int[,] Faces =
-            {
-                { 0, 1, 2, 3 },
-                { 4, 5, 6, 7 },
-                { 0, 1, 5, 4 },
-                { 2, 3, 7, 6 },
-                { 1, 2, 6, 5 },
-                { 3, 0, 4, 7 }
+                (0, 1), (1, 3), (3, 2), (2, 0),
+                (4, 5), (5, 7), (7, 6), (6, 4),
+                (0, 4), (1, 5), (2, 6), (3, 7)
             };
 
             private readonly Panel3D _owner;
-            private readonly Timer _refreshTimer;
+            private bool _drawing;
+            private bool _disposed;
 
-            public EffectBoxOverlay(Panel3D owner)
+            public EffectBoxOverlayWindow(Panel3D owner)
             {
-                _owner = owner;
-                SetStyle(ControlStyles.UserPaint |
-                         ControlStyles.AllPaintingInWmPaint |
-                         ControlStyles.OptimizedDoubleBuffer |
-                         ControlStyles.SupportsTransparentBackColor, true);
-                BackColor = Color.Transparent;
-                TabStop = false;
+                _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+                _owner.HandleCreated += Owner_HandleCreated;
+                _owner.HandleDestroyed += Owner_HandleDestroyed;
 
-                _refreshTimer = new Timer { Interval = 33 };
-                _refreshTimer.Tick += RefreshTimer_Tick;
-                _refreshTimer.Start();
-            }
-
-            protected override CreateParams CreateParams
-            {
-                get
-                {
-                    var parameters = base.CreateParams;
-                    parameters.ExStyle |= 0x20; // WS_EX_TRANSPARENT
-                    return parameters;
-                }
+                if (_owner.IsHandleCreated)
+                    AssignHandle(_owner.Handle);
             }
 
             protected override void WndProc(ref Message message)
             {
-                if (message.Msg == WmNcHitTest)
-                {
-                    message.Result = HtTransparent;
-                    return;
-                }
-
+                // First allow the Panel3D control to render and present its DirectX frame.
                 base.WndProc(ref message);
+
+                // Draw afterwards so the yellow distinction remains visible over the regular
+                // translucent volume representation.
+                if (message.Msg == WmPaint && !_drawing && !_disposed)
+                    DrawEffectBoxes();
             }
 
-            protected override void OnPaintBackground(PaintEventArgs e)
+            private void Owner_HandleCreated(object sender, EventArgs e)
             {
-                // Preserve the DirectX surface below this transparent overlay.
+                if (!_disposed && Handle == IntPtr.Zero)
+                    AssignHandle(_owner.Handle);
             }
 
-            protected override void OnPaint(PaintEventArgs e)
+            private void Owner_HandleDestroyed(object sender, EventArgs e)
             {
-                base.OnPaint(e);
+                if (Handle != IntPtr.Zero)
+                    ReleaseHandle();
+            }
 
-                if (!_owner.ShowVolumes ||
-                    _owner._editor?.Level == null ||
-                    !_owner._editor.Level.IsTombEngine ||
-                    Width <= 0 || Height <= 0)
+            private void DrawEffectBoxes()
+            {
+                var editor = _owner._editor;
+                if (editor?.Level == null || !editor.Level.IsTombEngine ||
+                    !_owner.ShowVolumes || !_owner.Visible ||
+                    _owner.ClientSize.Width <= 0 || _owner.ClientSize.Height <= 0)
                     return;
 
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                var roomsToDraw = _owner.CollectRoomsToDraw()
+                    .Where(room => _owner._frustum.Contains(room.WorldBoundingBox))
+                    .ToArray();
 
-                var selectedObject = _owner._editor.SelectedObject;
-                var boxes = _owner._editor.Level.GetAllObjects()
+                var effectBoxes = roomsToDraw
+                    .SelectMany(room => room.Objects)
                     .OfType<BoxVolumeInstance>()
-                    .Where(box => box.Room != null && box.IsEffectBox());
+                    .Where(volume => volume.IsEffectBox())
+                    .ToArray();
 
-                foreach (var box in boxes)
+                if (effectBoxes.Length == 0)
+                    return;
+
+                _drawing = true;
+                try
                 {
-                    bool selected = ReferenceEquals(selectedObject, box);
-                    if (!_owner.ShowAllRooms && !selected && box.Room != _owner._editor.SelectedRoom)
-                        continue;
+                    using (var graphics = Graphics.FromHwnd(_owner.Handle))
+                    {
+                        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        graphics.CompositingMode = CompositingMode.SourceOver;
 
-                    DrawEffectBox(e.Graphics, box, selected);
+                        foreach (var box in effectBoxes)
+                            DrawEffectBox(graphics, box);
+                    }
+                }
+                catch (ExternalException)
+                {
+                    // A resize may recreate the swap chain or native handle between presenting
+                    // and drawing. The next paint pass will redraw against the valid handle.
+                }
+                finally
+                {
+                    _drawing = false;
                 }
             }
 
-            private void DrawEffectBox(Graphics graphics, BoxVolumeInstance box, bool selected)
+            private void DrawEffectBox(Graphics graphics, BoxVolumeInstance box)
             {
-                var matrix = Matrix4x4.CreateScale(box.Size) *
-                             box.RotationPositionMatrix *
-                             _owner._viewProjection;
-
-                var points = new PointF[Corners.Length];
-                var visible = new bool[Corners.Length];
-                for (int index = 0; index < Corners.Length; index++)
-                    visible[index] = TryProject(Corners[index], matrix, out points[index]);
-
-                var baseColor = selected
-                    ? Color.FromArgb(255, 242, 96)
-                    : box.Enabled
-                        ? Color.FromArgb(238, 190, 25)
-                        : Color.FromArgb(165, 143, 66);
-
-                using (var fillBrush = new SolidBrush(Color.FromArgb(selected ? 34 : 20, baseColor)))
+                var half = box.Size * 0.5f;
+                var corners = new[]
                 {
-                    for (int face = 0; face < Faces.GetLength(0); face++)
-                    {
-                        var polygon = new PointF[4];
-                        bool drawFace = true;
-                        for (int point = 0; point < 4; point++)
-                        {
-                            int cornerIndex = Faces[face, point];
-                            if (!visible[cornerIndex])
-                            {
-                                drawFace = false;
-                                break;
-                            }
-                            polygon[point] = points[cornerIndex];
-                        }
+                    new Vector3(-half.X, -half.Y, -half.Z),
+                    new Vector3( half.X, -half.Y, -half.Z),
+                    new Vector3(-half.X,  half.Y, -half.Z),
+                    new Vector3( half.X,  half.Y, -half.Z),
+                    new Vector3(-half.X, -half.Y,  half.Z),
+                    new Vector3( half.X, -half.Y,  half.Z),
+                    new Vector3(-half.X,  half.Y,  half.Z),
+                    new Vector3( half.X,  half.Y,  half.Z)
+                };
 
-                        if (drawFace)
-                            graphics.FillPolygon(fillBrush, polygon);
-                    }
+                var matrix = box.RotationPositionMatrix * _owner._viewProjection;
+                var projected = new PointF[corners.Length];
+                var depths = new float[corners.Length];
+
+                for (int i = 0; i < corners.Length; i++)
+                {
+                    if (!TryProject(corners[i], matrix, _owner.ClientSize, out projected[i], out depths[i]))
+                        return;
                 }
 
-                using (var pen = new Pen(baseColor, selected ? 2.2f : 1.35f))
-                {
-                    for (int edge = 0; edge < Edges.GetLength(0); edge++)
+                bool selected = ReferenceEquals(_owner._editor.SelectedObject, box);
+                var outlineColor = box.Enabled
+                    ? Color.FromArgb(245, 255, 207, 32)
+                    : Color.FromArgb(210, 188, 165, 63);
+                var fillColor = box.Enabled
+                    ? Color.FromArgb(selected ? 86 : 58, 255, 207, 32)
+                    : Color.FromArgb(selected ? 66 : 42, 188, 165, 63);
+
+                var orderedFaces = Faces
+                    .Select(face => new
                     {
-                        int first = Edges[edge, 0];
-                        int second = Edges[edge, 1];
-                        if (visible[first] && visible[second])
-                            graphics.DrawLine(pen, points[first], points[second]);
-                    }
+                        Indices = face,
+                        Depth = face.Average(index => depths[index])
+                    })
+                    .OrderByDescending(face => face.Depth);
+
+                using (var brush = new SolidBrush(fillColor))
+                {
+                    foreach (var face in orderedFaces)
+                        graphics.FillPolygon(brush, face.Indices.Select(index => projected[index]).ToArray());
                 }
 
-                if (selected && TryProject(Vector3.Zero, matrix, out var center))
+                using (var pen = new Pen(outlineColor, selected ? 2.5f : 1.6f))
                 {
-                    using (var brush = new SolidBrush(Color.FromArgb(255, 246, 151)))
-                        graphics.FillEllipse(brush, center.X - 3.0f, center.Y - 3.0f, 6.0f, 6.0f);
+                    pen.LineJoin = LineJoin.Round;
+                    if (!box.Enabled)
+                        pen.DashStyle = DashStyle.Dash;
 
-                    graphics.DrawLine(Pens.White, center.X - 5.0f, center.Y, center.X + 5.0f, center.Y);
-                    graphics.DrawLine(Pens.White, center.X, center.Y - 5.0f, center.X, center.Y + 5.0f);
+                    foreach (var edge in Edges)
+                        graphics.DrawLine(pen, projected[edge.A], projected[edge.B]);
+                }
+
+                var center = new PointF(
+                    projected.Average(point => point.X),
+                    projected.Average(point => point.Y));
+
+                using (var font = new Font(SystemFonts.MessageBoxFont.FontFamily, 7.5f, FontStyle.Bold))
+                using (var textBrush = new SolidBrush(Color.FromArgb(235, 255, 230, 105)))
+                using (var shadowBrush = new SolidBrush(Color.FromArgb(180, 20, 20, 20)))
+                {
+                    const string label = "FX";
+                    var textSize = graphics.MeasureString(label, font);
+                    var position = new PointF(center.X - textSize.Width * 0.5f, center.Y - textSize.Height * 0.5f);
+                    graphics.DrawString(label, font, shadowBrush, position.X + 1.0f, position.Y + 1.0f);
+                    graphics.DrawString(label, font, textBrush, position);
                 }
             }
 
-            private bool TryProject(Vector3 point, Matrix4x4 matrix, out PointF screenPoint)
+            private static bool TryProject(Vector3 position, Matrix4x4 matrix, Size viewport,
+                out PointF screenPosition, out float depth)
             {
-                var clip = Vector4.Transform(new Vector4(point, 1.0f), matrix);
-                if (clip.W <= 0.001f)
+                var clip = Vector4.Transform(new Vector4(position, 1.0f), matrix);
+                if (clip.W <= 0.001f || float.IsNaN(clip.W) || float.IsInfinity(clip.W))
                 {
-                    screenPoint = PointF.Empty;
+                    screenPosition = PointF.Empty;
+                    depth = 0.0f;
                     return false;
                 }
 
-                float inverseW = 1.0f / clip.W;
-                float x = clip.X * inverseW;
-                float y = clip.Y * inverseW;
-                float z = clip.Z * inverseW;
-                if (z < -0.2f || z > 1.2f)
-                {
-                    screenPoint = PointF.Empty;
-                    return false;
-                }
+                var inverseW = 1.0f / clip.W;
+                var normalizedX = clip.X * inverseW;
+                var normalizedY = clip.Y * inverseW;
+                depth = clip.Z * inverseW;
 
-                screenPoint = new PointF(
-                    (x + 1.0f) * 0.5f * Width,
-                    (1.0f - y) * 0.5f * Height);
-                return true;
+                screenPosition = new PointF(
+                    (normalizedX + 1.0f) * 0.5f * viewport.Width,
+                    (1.0f - normalizedY) * 0.5f * viewport.Height);
+
+                return !float.IsNaN(screenPosition.X) && !float.IsNaN(screenPosition.Y) &&
+                       !float.IsInfinity(screenPosition.X) && !float.IsInfinity(screenPosition.Y);
             }
 
-            private void RefreshTimer_Tick(object sender, EventArgs e)
+            public void Dispose()
             {
-                if (Visible && _owner.Visible)
-                    Invalidate();
-            }
+                if (_disposed)
+                    return;
 
-            protected override void Dispose(bool disposing)
-            {
-                if (disposing)
-                {
-                    _refreshTimer.Stop();
-                    _refreshTimer.Tick -= RefreshTimer_Tick;
-                    _refreshTimer.Dispose();
-                }
+                _disposed = true;
+                _owner.HandleCreated -= Owner_HandleCreated;
+                _owner.HandleDestroyed -= Owner_HandleDestroyed;
 
-                base.Dispose(disposing);
+                if (Handle != IntPtr.Zero)
+                    ReleaseHandle();
             }
         }
     }
