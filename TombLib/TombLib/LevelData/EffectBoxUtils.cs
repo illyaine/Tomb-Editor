@@ -94,6 +94,7 @@ namespace TombLib.LevelData
         /// Returns the existing TEN effects and editor-side starting presets for the
         /// supported Effect Box particle emitter. Presets use the same function signature
         /// and argument layout, so they become normal editable NodeEditor nodes after insertion.
+        /// They do not add or modify any TombEngine particle API.
         /// </summary>
         public static IReadOnlyList<NodeFunction> GetAvailableEffectFunctions()
         {
