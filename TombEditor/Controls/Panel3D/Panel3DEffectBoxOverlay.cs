@@ -14,7 +14,8 @@ namespace TombEditor.Controls.Panel3D
 
         internal void InitializeEffectBoxOverlay()
         {
-            if (_effectBoxOverlay != null || LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Runtime)
+            if (_effectBoxOverlay != null ||
+                System.ComponentModel.LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Runtime)
                 return;
 
             _effectBoxOverlay = new EffectBoxOverlay(this)
@@ -184,11 +185,10 @@ namespace TombEditor.Controls.Panel3D
                 if (selected && TryProject(Vector3.Zero, matrix, out var center))
                 {
                     using (var brush = new SolidBrush(Color.FromArgb(255, 246, 151)))
-                    {
                         graphics.FillEllipse(brush, center.X - 3.0f, center.Y - 3.0f, 6.0f, 6.0f);
-                        graphics.DrawLine(Pens.White, center.X - 5.0f, center.Y, center.X + 5.0f, center.Y);
-                        graphics.DrawLine(Pens.White, center.X, center.Y - 5.0f, center.X, center.Y + 5.0f);
-                    }
+
+                    graphics.DrawLine(Pens.White, center.X - 5.0f, center.Y, center.X + 5.0f, center.Y);
+                    graphics.DrawLine(Pens.White, center.X, center.Y - 5.0f, center.X, center.Y + 5.0f);
                 }
             }
 
