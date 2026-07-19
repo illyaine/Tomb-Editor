@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Numerics;
 
 namespace TombLib.LevelData
@@ -160,21 +159,6 @@ namespace TombLib.LevelData
                 !level.Settings.VolumeEventSets.Contains(effectSet))
             {
                 level.Settings.VolumeEventSets.Add(effectSet);
-            }
-        }
-
-        public override void RemoveFromRoom(Level level, Room room)
-        {
-            var ownedEventSet = this.IsEffectBox() ? EventSet as VolumeEventSet : null;
-            base.RemoveFromRoom(level, room);
-
-            // Keep project settings free of orphaned private graph stores. Undo/reinsert is
-            // safe because AddToRoom registers the retained event set again.
-            if (ownedEventSet != null &&
-                !level.GetAllObjects().OfType<VolumeInstance>().Any(volume =>
-                    ReferenceEquals(volume.EventSet, ownedEventSet)))
-            {
-                level.Settings.VolumeEventSets.Remove(ownedEventSet);
             }
         }
 
