@@ -1,4 +1,5 @@
 ﻿using System.Windows.Forms;
+using TombEditor.Forms;
 using TombLib;
 using TombLib.LevelData;
 
@@ -76,6 +77,15 @@ namespace TombEditor.Controls.ContextMenus
 
             if (_editor.Level.IsTombEngine)
             {
+                Items.Add(new ToolStripMenuItem("Add effect box...", Properties.Resources.objects_volume_box_16, (o, e) =>
+                {
+                    var effectBox = EffectBoxUtils.Create(editor.Level.Settings);
+                    EditorActions.PlaceObject(targetRoom, targetSector, effectBox);
+
+                    using (var form = new FormEffectBoxEditor(effectBox))
+                        form.ShowDialog(owner);
+                }));
+
                 Items.Add(new ToolStripMenuItem("Add box volume", Properties.Resources.objects_volume_box_16, (o, e) =>
                 {
                     EditorActions.PlaceObject(targetRoom, targetSector, new BoxVolumeInstance());
