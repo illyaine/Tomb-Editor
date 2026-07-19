@@ -32,7 +32,11 @@ namespace TombEditor
             try
             {
                 using (var form = new FormEffectBoxEditor(instance))
+                {
+                    form.Text = "Effect definition editor";
+                    UpdatePresentation(form);
                     result = form.ShowDialog(owner);
+                }
 
                 if (result == DialogResult.OK && instance.EventSet is VolumeEventSet editedDefinition)
                 {
@@ -57,6 +61,21 @@ namespace TombEditor
             }
 
             return result;
+        }
+
+        private static void UpdatePresentation(Control root)
+        {
+            foreach (Control control in root.Controls)
+            {
+                if (control is Label label &&
+                    label.Text.StartsWith("Persistent editor graph", StringComparison.Ordinal))
+                {
+                    label.Text = "Project-wide definition — every placed box executes independently";
+                }
+
+                if (control.HasChildren)
+                    UpdatePresentation(control);
+            }
         }
     }
 }
