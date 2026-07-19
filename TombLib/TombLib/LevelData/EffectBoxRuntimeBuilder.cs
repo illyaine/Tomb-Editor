@@ -49,7 +49,7 @@ namespace TombLib.LevelData
 
                 var loopEvent = runtimeSet.Events[EventType.OnLoop];
                 loopEvent.Mode = EventSetMode.NodeEditor;
-                loopEvent.Enabled = effectBox.Enabled;
+                loopEvent.Enabled = true;
                 loopEvent.CallCounter = 0;
                 loopEvent.Nodes = runtimeNodes;
 
@@ -71,9 +71,18 @@ namespace TombLib.LevelData
             if (graphEvent == null || graphEvent.Nodes.Count == 0)
                 return new List<TriggerNode>();
 
-            var sourceNodes = TriggerNode.LinearizeNodes(graphEvent.Nodes)
-                .Where(IsRuntimeSupported)
-                .ToList();
+            var allNodes = TriggerNode.LinearizeNodes(graphEvent.Nodes);
+            var sourceNodes = allNodes.Where(IsRuntimeSupported).ToList();
+            int unsupportedCount = allNodes.Count - sourceNodes.Count;
+
+            if (unsupportedCount > 0)
+            {
+                _logger.Warn(
+                    "Effect Box '{0}' contains {1} node(s) without automatic runtime support. " +
+                    "Only Effect Box particle emitters are compiled in this implementation block.",
+                    effectBox.LuaName,
+                    unsupportedCount);
+            }
 
             var result = new List<TriggerNode>(sourceNodes.Count);
             string stableIdentifier = GetStableIdentifier(effectBox);
@@ -110,10 +119,14 @@ namespace TombLib.LevelData
 
         private static string GetStableIdentifier(BoxVolumeInstance effectBox)
         {
-            if (effectBox.EventSet != null && !string.IsNullOrWhiteSpace(effectBox.EventSet.Name))
+            if (effectBox.EventSet != null &&
+                !string.IsNullOrWhiteSpace(effectBox.EventSet.Name) &&
+                effectBox.EventSet.Name.StartsWith(EffectBoxUtils.EventSetPrefix, StringComparison.Ordinal))
+            {
                 return effectBox.EventSet.Name.Substring(EffectBoxUtils.EventSetPrefix.Length);
+            }
 
-            return Math.Abs(effectBox.GetHashCode()).ToString();
+            return unchecked((uint)effectBox.GetHashCode()).ToString();
         }
     }
 }
