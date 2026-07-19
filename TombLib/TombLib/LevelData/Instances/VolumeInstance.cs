@@ -153,6 +153,9 @@ namespace TombLib.LevelData
         {
             base.AddToRoom(level, room);
 
+            if (this.IsEffectBox() && string.IsNullOrWhiteSpace(LuaName))
+                AllocateNewLuaName();
+
             // Deep-cloned effect boxes carry an event set which is not yet part of the target
             // level settings. Register it when the object enters the room.
             if (this.IsEffectBox() && EventSet is VolumeEventSet effectSet &&
