@@ -97,12 +97,26 @@ namespace TombLib.LevelData
 
         public override string ToString()
         {
+            if (this.IsEffectBox())
+            {
+                var graph = this.GetGraphEvent();
+                var effectCount = graph == null ? 0 : VisualScripting.TriggerNode.LinearizeNodes(graph.Nodes).Count;
+                return "Effect Box" + GetScriptIDOrName(true) +
+                       " (" + (Room?.ToString() ?? "NULL") + ")" + "\n" +
+                       effectCount + (effectCount == 1 ? " effect node" : " effect nodes");
+            }
+
             return "Box Volume" + GetScriptIDOrName(true) +
                    " (" + (Room?.ToString() ?? "NULL") +")" + "\n" +
                    (EventSet as VolumeEventSet)?.GetDescription() ?? string.Empty;
         }
 
-        public override string ShortName() => "Box volume" + GetScriptIDOrName() + " (" + (Room?.ToString() ?? "NULL") + ")";
+        public override string ShortName()
+        {
+            return this.IsEffectBox()
+                ? "Effect box" + GetScriptIDOrName() + " (" + (Room?.ToString() ?? "NULL") + ")"
+                : "Box volume" + GetScriptIDOrName() + " (" + (Room?.ToString() ?? "NULL") + ")";
+        }
     }
 
     public abstract class VolumeInstance : PositionAndScriptBasedObjectInstance, ISpatial
