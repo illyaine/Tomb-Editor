@@ -52,7 +52,7 @@ namespace TombEditor.ToolWindows
             }
 
             _editor.Action = new EditorActionPlace(false,
-                (location, room) => EffectBoxUtils.Create(_editor.Level.Settings));
+                (level, room) => EffectBoxUtils.Create(level.Settings));
         }
 
         private void EffectBoxToolbar_EditorEventRaised(IEditorEvent editorEvent)
@@ -81,7 +81,11 @@ namespace TombEditor.ToolWindows
             {
                 insertIndex = toolStrip.Items.IndexOf(butAddSphereVolume);
                 if (insertIndex < 0)
-                    insertIndex = toolStrip.Items.Count;
+                {
+                    insertIndex = toolStrip.Items.IndexOf(butCompileLevel);
+                    if (insertIndex < 0)
+                        insertIndex = toolStrip.Items.Count;
+                }
             }
 
             toolStrip.Items.Insert(insertIndex, _butAddEffectBox);
