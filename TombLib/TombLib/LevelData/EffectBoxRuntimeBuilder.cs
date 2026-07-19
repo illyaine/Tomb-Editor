@@ -31,15 +31,15 @@ namespace TombLib.LevelData
                 .OfType<BoxVolumeInstance>()
                 .Where(volume => volume.IsEffectBox()))
             {
-                var runtimeNodes = BuildRuntimeNodes(effectBox);
-                if (runtimeNodes.Count == 0)
-                    continue;
-
                 if (string.IsNullOrWhiteSpace(effectBox.LuaName))
                 {
                     _logger.Warn("Effect Box has no Lua name and cannot emit particles at runtime.");
                     continue;
                 }
+
+                var runtimeNodes = BuildRuntimeNodes(effectBox);
+                if (runtimeNodes.Count == 0)
+                    continue;
 
                 var runtimeSet = new GlobalEventSet
                 {
