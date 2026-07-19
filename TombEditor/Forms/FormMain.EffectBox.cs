@@ -10,11 +10,15 @@ namespace TombEditor.Forms
         private ToolStripMenuItem _addEffectBoxToolStripMenuItem;
         private bool _effectBoxMenuInitialized;
 
-        protected override void OnCreateControl()
+        protected override void OnLoad(EventArgs e)
         {
-            base.OnCreateControl();
+            base.OnLoad(e);
+            InitializeEffectBoxMenu();
+        }
 
-            if (_effectBoxMenuInitialized)
+        private void InitializeEffectBoxMenu()
+        {
+            if (_effectBoxMenuInitialized || _editor == null)
                 return;
 
             _effectBoxMenuInitialized = true;
