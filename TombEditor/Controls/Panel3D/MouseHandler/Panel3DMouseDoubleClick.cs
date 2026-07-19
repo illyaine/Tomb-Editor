@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
+using TombEditor.Forms;
 using TombLib.Graphics;
 using TombLib.LevelData;
 
@@ -18,7 +19,15 @@ namespace TombEditor.Controls.Panel3D
                 if (ModifierKeys == Keys.None)
                 {
                     var pickedObject = ((PickingResultObject)newPicking).ObjectInstance;
-                    EditorActions.EditObject(pickedObject, Parent);
+                    if (pickedObject is VolumeInstance volume && volume.IsEffectBox())
+                    {
+                        using (var form = new FormEffectBoxEditor(volume))
+                            form.ShowDialog(Parent);
+                    }
+                    else
+                    {
+                        EditorActions.EditObject(pickedObject, Parent);
+                    }
                 }
             }
             else if (newPicking is PickingResultSector)
