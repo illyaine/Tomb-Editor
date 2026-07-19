@@ -1,5 +1,6 @@
 ﻿using System.Windows.Forms;
 using System;
+using TombEditor.Forms;
 using TombLib.LevelData;
 
 namespace TombEditor.Controls.ContextMenus
@@ -33,7 +34,15 @@ namespace TombEditor.Controls.ContextMenus
                 }
             }
 
-            if (!(targetObject is LightInstance || targetObject is GhostBlockInstance))
+            if (targetObject is VolumeInstance volume && volume.IsEffectBox())
+            {
+                Items.Add(new ToolStripMenuItem("Edit effect box...", Properties.Resources.general_edit_16, (o, e) =>
+                {
+                    using (var form = new FormEffectBoxEditor(volume))
+                        form.ShowDialog(owner);
+                }));
+            }
+            else if (!(targetObject is LightInstance || targetObject is GhostBlockInstance))
             { 
                 Items.Add(new ToolStripMenuItem("Edit object", Properties.Resources.general_edit_16, (o, e) =>
                 {
