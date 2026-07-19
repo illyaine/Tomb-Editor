@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using TombLib.LevelData.VisualScripting;
@@ -441,11 +440,6 @@ namespace TombLib.LevelData
         private static IReadOnlyDictionary<string, string> Defaults(params (string Name, string Value)[] values)
         {
             return values.ToDictionary(value => value.Name, value => value.Value, StringComparer.OrdinalIgnoreCase);
-        }
-
-        private static string ToInvariant(float value)
-        {
-            return value.ToString(CultureInfo.InvariantCulture);
         }
     }
 }
