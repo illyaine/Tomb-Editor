@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace TombLib.LevelData
 {
@@ -13,6 +14,14 @@ namespace TombLib.LevelData
     /// </summary>
     public static class EffectBoxDefinitionUtils
     {
+        private sealed class DefaultDefinitionState
+        {
+            public VolumeEventSet Definition;
+        }
+
+        private static readonly ConditionalWeakTable<LevelSettings, DefaultDefinitionState> _defaultDefinitions =
+            new ConditionalWeakTable<LevelSettings, DefaultDefinitionState>();
+
         public static IReadOnlyList<VolumeEventSet> GetDefinitions(LevelSettings settings)
         {
             if (settings == null)
@@ -44,12 +53,35 @@ namespace TombLib.LevelData
             }
 
             settings.VolumeEventSets.Add(definition);
+            SetDefaultDefinition(settings, definition);
             return definition;
+        }
+
+        public static void SetDefaultDefinition(LevelSettings settings, VolumeEventSet definition)
+        {
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings));
+            if (definition == null || !EffectBoxUtils.IsEffectBoxEventSet(definition) ||
+                !settings.VolumeEventSets.Contains(definition))
+                return;
+
+            _defaultDefinitions.GetOrCreateValue(settings).Definition = definition;
         }
 
         public static VolumeEventSet GetOrCreateDefaultDefinition(LevelSettings settings)
         {
-            return GetDefinitions(settings).FirstOrDefault() ?? CreateDefinition(settings);
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings));
+
+            var state = _defaultDefinitions.GetOrCreateValue(settings);
+            if (state.Definition != null && settings.VolumeEventSets.Contains(state.Definition) &&
+                EffectBoxUtils.IsEffectBoxEventSet(state.Definition))
+            {
+                return state.Definition;
+            }
+
+            state.Definition = GetDefinitions(settings).FirstOrDefault() ?? CreateDefinition(settings);
+            return state.Definition;
         }
 
         public static BoxVolumeInstance CreateInstance(LevelSettings settings)
@@ -75,6 +107,7 @@ namespace TombLib.LevelData
             var clone = (VolumeEventSet)source.Clone();
             clone.Name = EffectBoxUtils.CreateEventSetName();
             settings.VolumeEventSets.Add(clone);
+            SetDefaultDefinition(settings, clone);
             return clone;
         }
     }
