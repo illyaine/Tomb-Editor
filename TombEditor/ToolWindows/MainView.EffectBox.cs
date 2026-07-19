@@ -56,7 +56,7 @@ namespace TombEditor.ToolWindows
             }
 
             _editor.Action = new EditorActionPlace(false,
-                (level, room) => EffectBoxUtils.Create(level.Settings));
+                (level, room) => EffectBoxDefinitionUtils.CreateInstance(level.Settings));
         }
 
         private void EffectBoxToolbar_EditorEventRaised(IEditorEvent editorEvent)
