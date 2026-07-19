@@ -135,18 +135,10 @@ namespace TombLib.LevelData
 
         public override ObjectInstance Clone()
         {
-            var clone = (VolumeInstance)base.Clone();
-
-            // Ordinary trigger volumes intentionally share reusable event sets. Effect boxes,
-            // however, own their graph. A cloned/stamped box therefore receives a deep copy
-            // and a new private identifier.
-            if (this.IsEffectBox() && EventSet != null)
-            {
-                clone.EventSet = EventSet.Clone();
-                clone.EventSet.Name = EffectBoxUtils.CreateEventSetName();
-            }
-
-            return clone;
+            // Event sets are project-wide definitions. This intentionally retains the same
+            // reference, matching ordinary VolumeInstance behavior. The base clone clears
+            // the per-instance script ID and Lua name, so the placed copy remains independent.
+            return (VolumeInstance)base.Clone();
         }
 
         public override void AddToRoom(Level level, Room room)
@@ -156,8 +148,9 @@ namespace TombLib.LevelData
             if (this.IsEffectBox() && string.IsNullOrWhiteSpace(LuaName))
                 AllocateNewLuaName();
 
-            // Deep-cloned effect boxes carry an event set which is not yet part of the target
-            // level settings. Register it when the object enters the room.
+            // Definitions are normally already registered in the project settings. Keep this
+            // guard for copied rooms and cross-level transfers where the referenced definition
+            // may enter the destination level together with the instance.
             if (this.IsEffectBox() && EventSet is VolumeEventSet effectSet &&
                 !level.Settings.VolumeEventSets.Contains(effectSet))
             {
