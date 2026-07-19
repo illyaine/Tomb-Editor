@@ -14,8 +14,8 @@ namespace TombEditor.Controls.Panel3D
         private EffectBoxOverlayWindow _effectBoxOverlayWindow;
 
         /// <summary>
-        /// Installs a post-present overlay which distinguishes effect boxes from ordinary
-        /// trigger volumes without changing the existing volume renderer.
+        /// Installs a post-present outline overlay which distinguishes Effect Boxes from
+        /// ordinary volumes without drawing a second surface over the volume geometry.
         /// </summary>
         internal void InitializeEffectBoxOverlay()
         {
@@ -37,16 +37,6 @@ namespace TombEditor.Controls.Panel3D
         private sealed class EffectBoxOverlayWindow : NativeWindow, IDisposable
         {
             private const int WmPaint = 0x000F;
-
-            private static readonly int[][] Faces =
-            {
-                new[] { 0, 1, 3, 2 },
-                new[] { 4, 5, 7, 6 },
-                new[] { 0, 1, 5, 4 },
-                new[] { 2, 3, 7, 6 },
-                new[] { 0, 2, 6, 4 },
-                new[] { 1, 3, 7, 5 }
-            };
 
             private static readonly (int A, int B)[] Edges =
             {
@@ -71,11 +61,8 @@ namespace TombEditor.Controls.Panel3D
 
             protected override void WndProc(ref Message message)
             {
-                // First allow the Panel3D control to render and present its DirectX frame.
                 base.WndProc(ref message);
 
-                // Draw afterwards so the yellow distinction remains visible over the regular
-                // translucent volume representation.
                 if (message.Msg == WmPaint && !_drawing && !_disposed)
                     DrawEffectBoxes();
             }
@@ -100,11 +87,8 @@ namespace TombEditor.Controls.Panel3D
                     _owner.ClientSize.Width <= 0 || _owner.ClientSize.Height <= 0)
                     return;
 
-                var roomsToDraw = _owner.CollectRoomsToDraw()
+                var effectBoxes = _owner.CollectRoomsToDraw()
                     .Where(room => _owner._frustum.Contains(room.WorldBoundingBox))
-                    .ToArray();
-
-                var effectBoxes = roomsToDraw
                     .SelectMany(room => room.Objects)
                     .OfType<BoxVolumeInstance>()
                     .Where(volume => volume.IsEffectBox())
@@ -128,8 +112,7 @@ namespace TombEditor.Controls.Panel3D
                 }
                 catch (ExternalException)
                 {
-                    // A resize may recreate the swap chain or native handle between presenting
-                    // and drawing. The next paint pass will redraw against the valid handle.
+                    // The next paint pass redraws after handle or swap-chain recreation.
                 }
                 finally
                 {
@@ -154,11 +137,9 @@ namespace TombEditor.Controls.Panel3D
 
                 var matrix = box.RotationPositionMatrix * _owner._viewProjection;
                 var projected = new PointF[corners.Length];
-                var depths = new float[corners.Length];
-
                 for (int i = 0; i < corners.Length; i++)
                 {
-                    if (!TryProject(corners[i], matrix, _owner.ClientSize, out projected[i], out depths[i]))
+                    if (!TryProject(corners[i], matrix, _owner.ClientSize, out projected[i]))
                         return;
                 }
 
@@ -166,25 +147,8 @@ namespace TombEditor.Controls.Panel3D
                 var outlineColor = box.Enabled
                     ? Color.FromArgb(245, 255, 207, 32)
                     : Color.FromArgb(210, 188, 165, 63);
-                var fillColor = box.Enabled
-                    ? Color.FromArgb(selected ? 86 : 58, 255, 207, 32)
-                    : Color.FromArgb(selected ? 66 : 42, 188, 165, 63);
 
-                var orderedFaces = Faces
-                    .Select(face => new
-                    {
-                        Indices = face,
-                        Depth = face.Average(index => depths[index])
-                    })
-                    .OrderByDescending(face => face.Depth);
-
-                using (var brush = new SolidBrush(fillColor))
-                {
-                    foreach (var face in orderedFaces)
-                        graphics.FillPolygon(brush, face.Indices.Select(index => projected[index]).ToArray());
-                }
-
-                using (var pen = new Pen(outlineColor, selected ? 2.5f : 1.6f))
+                using (var pen = new Pen(outlineColor, selected ? 3.0f : 2.0f))
                 {
                     pen.LineJoin = LineJoin.Round;
                     if (!box.Enabled)
@@ -211,24 +175,19 @@ namespace TombEditor.Controls.Panel3D
             }
 
             private static bool TryProject(Vector3 position, Matrix4x4 matrix, Size viewport,
-                out PointF screenPosition, out float depth)
+                out PointF screenPosition)
             {
                 var clip = Vector4.Transform(new Vector4(position, 1.0f), matrix);
                 if (clip.W <= 0.001f || float.IsNaN(clip.W) || float.IsInfinity(clip.W))
                 {
                     screenPosition = PointF.Empty;
-                    depth = 0.0f;
                     return false;
                 }
 
                 var inverseW = 1.0f / clip.W;
-                var normalizedX = clip.X * inverseW;
-                var normalizedY = clip.Y * inverseW;
-                depth = clip.Z * inverseW;
-
                 screenPosition = new PointF(
-                    (normalizedX + 1.0f) * 0.5f * viewport.Width,
-                    (1.0f - normalizedY) * 0.5f * viewport.Height);
+                    (clip.X * inverseW + 1.0f) * 0.5f * viewport.Width,
+                    (1.0f - clip.Y * inverseW) * 0.5f * viewport.Height);
 
                 return !float.IsNaN(screenPosition.X) && !float.IsNaN(screenPosition.Y) &&
                        !float.IsInfinity(screenPosition.X) && !float.IsInfinity(screenPosition.Y);
