@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
+using TombLib.Forms;
 using TombLib.LevelData;
 
 namespace TombEditor.ToolWindows
@@ -45,7 +45,7 @@ namespace TombEditor.ToolWindows
 
         private void ButAddEffectBox_Click(object sender, EventArgs e)
         {
-            if (!_editor.Level.IsTombEngine)
+            if (_editor.Level == null || !_editor.Level.IsTombEngine)
             {
                 _editor.SendMessage("Effect boxes are available only for Tomb Engine levels.", PopupType.Warning);
                 return;
