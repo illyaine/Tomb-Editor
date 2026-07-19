@@ -225,6 +225,9 @@ namespace TombEditor.Controls.ContextMenus
                     Items.Add(triggerItem);
                 }
             }
+
+            if (Items.Count > 0 && Items[Items.Count - 1] is ToolStripSeparator)
+                Items.RemoveAt(Items.Count - 1);
         }
     }
 }
