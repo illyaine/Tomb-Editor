@@ -129,9 +129,7 @@ namespace TombEditor.Forms
                 return;
 
             var definition = EffectBoxDefinitionUtils.CreateDefinition(_editor.Level.Settings);
-            PopulateEventSetList();
-            RefreshEffectBoxRows();
-            SelectedSet = definition;
+            RepopulateEffectBoxDefinitions(definition);
             EditSelectedEffectDefinition();
         }
 
@@ -142,9 +140,7 @@ namespace TombEditor.Forms
                 return;
 
             var clone = EffectBoxDefinitionUtils.CloneDefinition(_editor.Level.Settings, source);
-            PopulateEventSetList();
-            RefreshEffectBoxRows();
-            SelectedSet = clone;
+            RepopulateEffectBoxDefinitions(clone);
             _editor.EventSetsChange();
         }
 
@@ -184,9 +180,7 @@ namespace TombEditor.Forms
             }
 
             _editor.Level.Settings.VolumeEventSets.Remove(selected);
-            PopulateEventSetList();
-            RefreshEffectBoxRows();
-            SelectedSet = replacement;
+            RepopulateEffectBoxDefinitions(replacement);
             _editor.EventSetsChange();
         }
 
@@ -207,10 +201,25 @@ namespace TombEditor.Forms
             _editor.ObjectChange(_instance, ObjectChangeType.Change);
             TombEditor.EffectBoxEditorLauncher.Show(this, _instance);
 
-            PopulateEventSetList();
-            RefreshEffectBoxRows();
-            SelectedSet = _instance.EventSet;
+            RepopulateEffectBoxDefinitions(_instance.EventSet);
             UpdateEffectBoxSelectionState();
+        }
+
+        private void RepopulateEffectBoxDefinitions(EventSet selection)
+        {
+            _lockSelectionChange = true;
+            try
+            {
+                PopulateEventSetList();
+                RefreshEffectBoxRows();
+                SelectedSet = selection;
+            }
+            finally
+            {
+                _lockSelectionChange = false;
+            }
+
+            RefreshEffectBoxRows();
         }
 
         private void QueueEffectBoxRowRefresh()
@@ -235,6 +244,7 @@ namespace TombEditor.Forms
 
             if (_effectBoxAssignmentMode)
             {
+                bool wasLocked = _lockSelectionChange;
                 _lockSelectionChange = true;
                 try
                 {
@@ -247,7 +257,7 @@ namespace TombEditor.Forms
                 }
                 finally
                 {
-                    _lockSelectionChange = false;
+                    _lockSelectionChange = wasLocked;
                 }
             }
 
