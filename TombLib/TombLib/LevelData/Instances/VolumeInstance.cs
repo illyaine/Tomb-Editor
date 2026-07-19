@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 
 namespace TombLib.LevelData
@@ -132,6 +133,50 @@ namespace TombLib.LevelData
         public bool DetectInAdjacentRooms { get; set; } = false;
 
         public EventSet EventSet { get; set; }
+
+        public override ObjectInstance Clone()
+        {
+            var clone = (VolumeInstance)base.Clone();
+
+            // Ordinary trigger volumes intentionally share reusable event sets. Effect boxes,
+            // however, own their graph. A cloned/stamped box therefore receives a deep copy
+            // and a new private identifier.
+            if (this.IsEffectBox() && EventSet != null)
+            {
+                clone.EventSet = EventSet.Clone();
+                clone.EventSet.Name = EffectBoxUtils.CreateEventSetName();
+            }
+
+            return clone;
+        }
+
+        public override void AddToRoom(Level level, Room room)
+        {
+            base.AddToRoom(level, room);
+
+            // Deep-cloned effect boxes carry an event set which is not yet part of the target
+            // level settings. Register it when the object enters the room.
+            if (this.IsEffectBox() && EventSet is VolumeEventSet effectSet &&
+                !level.Settings.VolumeEventSets.Contains(effectSet))
+            {
+                level.Settings.VolumeEventSets.Add(effectSet);
+            }
+        }
+
+        public override void RemoveFromRoom(Level level, Room room)
+        {
+            var ownedEventSet = this.IsEffectBox() ? EventSet as VolumeEventSet : null;
+            base.RemoveFromRoom(level, room);
+
+            // Keep project settings free of orphaned private graph stores. Undo/reinsert is
+            // safe because AddToRoom registers the retained event set again.
+            if (ownedEventSet != null &&
+                !level.GetAllObjects().OfType<VolumeInstance>().Any(volume =>
+                    ReferenceEquals(volume.EventSet, ownedEventSet)))
+            {
+                level.Settings.VolumeEventSets.Remove(ownedEventSet);
+            }
+        }
 
         public override void CopyDependentLevelSettings(Room.CopyDependentLevelSettingsArgs args)
         {
