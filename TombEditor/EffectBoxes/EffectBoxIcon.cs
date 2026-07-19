@@ -9,7 +9,11 @@ namespace TombEditor
     /// </summary>
     internal static class EffectBoxIcon
     {
-        public static Image Image16 { get; } = CreateImage(16);
+        private static readonly Image _image16 = CreateImage(16);
+
+        // ToolStrip items may dispose their assigned images. Return an independent copy so
+        // menu and toolbar controls never share ownership of the same disposable instance.
+        public static Image Image16 => (Image)_image16.Clone();
 
         private static Bitmap CreateImage(int size)
         {
