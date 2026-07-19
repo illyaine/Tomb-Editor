@@ -21,7 +21,7 @@ namespace TombEditor.Controls.Panel3D
                     var pickedObject = ((PickingResultObject)newPicking).ObjectInstance;
                     if (pickedObject is VolumeInstance volume && volume.IsEffectBox())
                     {
-                        using (var form = new FormEffectBoxEditor(volume))
+                        using (var form = new FormEventSetEditor(false, volume))
                             form.ShowDialog(Parent);
                     }
                     else
