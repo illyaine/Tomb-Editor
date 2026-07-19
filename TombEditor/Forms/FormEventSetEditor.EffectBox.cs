@@ -98,9 +98,9 @@ namespace TombEditor.Forms
                     : "Effect box graph — " + effectBox.LuaName;
 
                 row.Cells[0].Value = name;
+                row.Cells[0].ToolTipText = "Managed by the Effect Box Editor. Double-click to open it.";
                 row.DefaultCellStyle.ForeColor = Color.Goldenrod;
                 row.DefaultCellStyle.SelectionForeColor = Color.Gold;
-                row.ToolTipText = "Managed by the Effect Box Editor. Double-click to open it.";
             }
         }
 
