@@ -1,15 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using TombEditor.Forms;
 using TombLib.LevelData;
+using TombLib.LevelData.VisualScripting;
 
 namespace TombEditor
 {
     /// <summary>
-    /// Opens the existing Effect Box graph editor against a temporary working definition.
-    /// This preserves the editor's OK/Cancel behavior while keeping the real definition
-    /// shared by every Effect Box instance which references it.
+    /// Opens the Effect Box component editor against a temporary working definition.
+    /// Definitions remain shared, while every supported emitter is stored as an independent
+    /// parallel component rather than as an executable action sequence.
     /// </summary>
     internal static class EffectBoxEditorLauncher
     {
@@ -24,6 +26,7 @@ namespace TombEditor
             var settings = editor.Level.Settings;
             var workingDefinition = (VolumeEventSet)originalDefinition.Clone();
             workingDefinition.Name = EffectBoxUtils.CreateEventSetName();
+            NormalizeParallelComponents(workingDefinition.Events[EventType.OnVolumeInside]);
 
             settings.VolumeEventSets.Add(workingDefinition);
             instance.EventSet = workingDefinition;
@@ -40,6 +43,7 @@ namespace TombEditor
 
                 if (result == DialogResult.OK && instance.EventSet is VolumeEventSet editedDefinition)
                 {
+                    NormalizeParallelComponents(editedDefinition.Events[EventType.OnVolumeInside]);
                     originalDefinition.Activators = VolumeActivators.None;
                     originalDefinition.LastUsedEvent = EventType.OnVolumeInside;
                     originalDefinition.Events = editedDefinition.Events.ToDictionary(
@@ -50,9 +54,6 @@ namespace TombEditor
             finally
             {
                 instance.EventSet = originalDefinition;
-
-                // Cancel restores a cloned working set into the settings list, while OK leaves
-                // the original working object there. Remove either form by its unique name.
                 settings.VolumeEventSets.RemoveAll(eventSet =>
                     string.Equals(eventSet.Name, workingDefinition.Name, StringComparison.Ordinal));
 
@@ -61,6 +62,30 @@ namespace TombEditor
             }
 
             return result;
+        }
+
+        private static void NormalizeParallelComponents(Event graphEvent)
+        {
+            if (graphEvent == null)
+                return;
+
+            var components = new List<TriggerNode>();
+            foreach (var root in graphEvent.Nodes.ToList())
+            {
+                for (var node = root; node != null;)
+                {
+                    var next = node.Next;
+                    node.Previous = null;
+                    node.Next = null;
+
+                    if (EffectBoxRuntimeBuilder.IsRuntimeSupported(node))
+                        components.Add(node);
+
+                    node = next;
+                }
+            }
+
+            graphEvent.Nodes = components;
         }
 
         private static void UpdatePresentation(Control root)
@@ -74,14 +99,62 @@ namespace TombEditor
                     HideInstanceColumns(header);
                 }
 
-                if (control is Label statusLabel &&
-                    statusLabel.Text.StartsWith("Persistent editor graph", StringComparison.Ordinal))
+                if (control is Label label)
                 {
-                    statusLabel.Text = "Project-wide definition — every placed box executes independently";
+                    if (label.Text.StartsWith("Persistent editor graph", StringComparison.Ordinal))
+                        label.Text = "Project-wide definition — components run in parallel";
+                    else if (label.Text == "Effect entries")
+                        label.Text = "Effect components";
+                    else if (label.Text == "Effect composition")
+                        label.Text = "Component parameters";
+                    else if (label.Text == "Available TEN effects")
+                        label.Text = "Available particle emitters";
                 }
+
+                if (control is Button button)
+                {
+                    if (button.Text == "Create")
+                        button.Text = "Add component";
+                    else if (button.Text == "Delete")
+                        button.Text = "Delete component";
+                    else if (button.Text == "Link nodes" || button.Text == "Delete node")
+                        button.Visible = false;
+                    else if (button.Text == "Clear graph")
+                        button.Text = "Clear components";
+                    else if (button.Text == "Add selected effect")
+                        button.Text = "Add selected emitter";
+                }
+
+                if (control is TextBox textBox && textBox.PlaceholderText == "Entry name")
+                    textBox.PlaceholderText = "Component name";
+
+                if (control is TreeView tree)
+                    RemoveUnsupportedFunctions(tree.Nodes);
 
                 if (control.HasChildren)
                     UpdatePresentation(control);
+            }
+        }
+
+        private static void RemoveUnsupportedFunctions(TreeNodeCollection nodes)
+        {
+            for (int index = nodes.Count - 1; index >= 0; index--)
+            {
+                var node = nodes[index];
+                if (node.Tag is NodeFunction function &&
+                    !string.Equals(function.Signature, EffectBoxRuntimeBuilder.ParticleEmitterFunction,
+                        StringComparison.Ordinal))
+                {
+                    nodes.RemoveAt(index);
+                    continue;
+                }
+
+                if (node.Nodes.Count > 0)
+                {
+                    RemoveUnsupportedFunctions(node.Nodes);
+                    if (node.Tag == null && node.Nodes.Count == 0)
+                        nodes.RemoveAt(index);
+                }
             }
         }
 
