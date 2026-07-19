@@ -20,7 +20,7 @@ namespace TombLib.LevelData
 
             return settings.VolumeEventSets
                 .OfType<VolumeEventSet>()
-                .Where(EffectBoxUtils.IsEffectBoxEventSet)
+                .Where(definition => EffectBoxUtils.IsEffectBoxEventSet(definition))
                 .ToList();
         }
 
@@ -29,10 +29,22 @@ namespace TombLib.LevelData
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
 
-            // EffectBoxUtils.Create already establishes the complete private event-set
-            // contract. The temporary instance is deliberately discarded: the definition
-            // itself is project-wide and can subsequently be assigned to many boxes.
-            return (VolumeEventSet)EffectBoxUtils.Create(settings).EventSet;
+            var definition = new VolumeEventSet
+            {
+                Name = EffectBoxUtils.CreateEventSetName(),
+                Activators = VolumeActivators.None,
+                LastUsedEvent = EventType.OnVolumeInside
+            };
+
+            foreach (var entry in definition.Events)
+            {
+                entry.Value.Enabled = false;
+                entry.Value.Mode = EventSetMode.NodeEditor;
+                entry.Value.CallCounter = 0;
+            }
+
+            settings.VolumeEventSets.Add(definition);
+            return definition;
         }
 
         public static VolumeEventSet GetOrCreateDefaultDefinition(LevelSettings settings)
