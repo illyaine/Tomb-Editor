@@ -65,7 +65,7 @@ namespace TombLib.LevelData
                 !settings.VolumeEventSets.Contains(definition))
                 return;
 
-            _defaultDefinitions.GetOrCreateValue(settings).Definition = definition;
+            GetState(settings).Definition = definition;
         }
 
         public static VolumeEventSet GetOrCreateDefaultDefinition(LevelSettings settings)
@@ -73,14 +73,17 @@ namespace TombLib.LevelData
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
 
-            var state = _defaultDefinitions.GetOrCreateValue(settings);
+            var state = GetState(settings);
             if (state.Definition != null && settings.VolumeEventSets.Contains(state.Definition) &&
                 EffectBoxUtils.IsEffectBoxEventSet(state.Definition))
             {
                 return state.Definition;
             }
 
-            state.Definition = GetDefinitions(settings).FirstOrDefault() ?? CreateDefinition(settings);
+            state.Definition = GetDefinitions(settings).FirstOrDefault();
+            if (state.Definition == null)
+                state.Definition = CreateDefinition(settings);
+
             return state.Definition;
         }
 
@@ -109,6 +112,11 @@ namespace TombLib.LevelData
             settings.VolumeEventSets.Add(clone);
             SetDefaultDefinition(settings, clone);
             return clone;
+        }
+
+        private static DefaultDefinitionState GetState(LevelSettings settings)
+        {
+            return _defaultDefinitions.GetValue(settings, _ => new DefaultDefinitionState());
         }
     }
 }
