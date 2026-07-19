@@ -212,6 +212,10 @@ namespace TombEditor.Forms
             {
                 PopulateEventSetList();
                 RefreshEffectBoxRows();
+
+                // PopulateEventSetList rebuilds every row while SelectedSet still points to
+                // the same object. Reset the cache so the property setter selects the new row.
+                _selectedSet = null;
                 SelectedSet = selection;
             }
             finally
