@@ -67,14 +67,37 @@ namespace TombEditor
         {
             foreach (Control control in root.Controls)
             {
-                if (control is Label label &&
-                    label.Text.StartsWith("Persistent editor graph", StringComparison.Ordinal))
+                if (control is TableLayoutPanel header &&
+                    header.Controls.OfType<Label>().Any(label => label.Text == "Lua name:") &&
+                    header.Controls.OfType<Label>().Any(label => label.Text == "Box state:"))
                 {
-                    label.Text = "Project-wide definition — every placed box executes independently";
+                    HideInstanceColumns(header);
+                }
+
+                if (control is Label statusLabel &&
+                    statusLabel.Text.StartsWith("Persistent editor graph", StringComparison.Ordinal))
+                {
+                    statusLabel.Text = "Project-wide definition — every placed box executes independently";
                 }
 
                 if (control.HasChildren)
                     UpdatePresentation(control);
+            }
+        }
+
+        private static void HideInstanceColumns(TableLayoutPanel header)
+        {
+            foreach (Control control in header.Controls)
+            {
+                int column = header.GetColumn(control);
+                if (column >= 0 && column <= 3)
+                    control.Visible = false;
+            }
+
+            for (int column = 0; column <= 3 && column < header.ColumnStyles.Count; column++)
+            {
+                header.ColumnStyles[column].SizeType = SizeType.Absolute;
+                header.ColumnStyles[column].Width = 0;
             }
         }
     }
