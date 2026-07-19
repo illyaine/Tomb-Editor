@@ -153,6 +153,8 @@ LevelFuncs.Engine.Node.EffectBoxParticleEmitter = function(enabled, distribution
 end
 
 local EFFECT_BOX_FPS = 30
+local EFFECT_BOX_DEFAULT_VECTOR = TEN.Vec3(0, 0, 0)
+local EFFECT_BOX_DEFAULT_COLOR = TEN.Color(255, 255, 255)
 
 local function EffectBoxRandomRange(minimum, maximum)
 	minimum = minimum or 0
@@ -217,7 +219,7 @@ LevelFuncs.Engine.Node.__EffectBoxParticleEmitterRuntime = function(volumeName, 
 	gravity, friction, maxYVel, startColor, endColor, blendID, startSize, endSize, lifeMin, lifeMax,
 	startRot, rotVel, wind, damage, poison, burn, damageHit, animated, frameRate, animType,
 	light, lightRadius, lightFlicker)
-	if not enabled then
+	if enabled == false or not volumeName or volumeName == "" then
 		return
 	end
 
@@ -225,6 +227,32 @@ LevelFuncs.Engine.Node.__EffectBoxParticleEmitterRuntime = function(volumeName, 
 	if not volume or not volume:GetActive() then
 		return
 	end
+
+	emitterKey = emitterKey or volumeName
+	distribution = math.max(0, math.min(5, math.floor(distribution or 0)))
+	burstCount = math.max(1, math.min(256, math.floor(burstCount or 1)))
+	velocity = velocity or EFFECT_BOX_DEFAULT_VECTOR
+	velocitySpread = velocitySpread or EFFECT_BOX_DEFAULT_VECTOR
+	rotateVelocity = rotateVelocity ~= false
+	spriteID = math.max(0, math.floor(spriteID or 0))
+	gravity = gravity or 0
+	friction = friction or 0
+	maxYVel = maxYVel or 0
+	startColor = startColor or EFFECT_BOX_DEFAULT_COLOR
+	endColor = endColor or startColor
+	startSize = startSize or 10
+	endSize = endSize or 0
+	startRot = startRot or 0
+	rotVel = rotVel or 0
+	damageHit = math.max(0, math.floor(damageHit or 2))
+	frameRate = math.max(0.01, frameRate or 1)
+	lightRadius = math.max(0, math.floor(lightRadius or 0))
+	lightFlicker = math.max(0, math.floor(lightFlicker or 0))
+
+	local minimumInterval = math.max(0, intervalMin or 0)
+	local maximumInterval = math.max(0, intervalMax or minimumInterval)
+	local minimumLife = math.max(0.1, lifeMin or 2)
+	local maximumLife = math.max(0.1, lifeMax or minimumLife)
 
 	LevelVars.Engine.EffectBoxEmitters = LevelVars.Engine.EffectBoxEmitters or {}
 	local state = LevelVars.Engine.EffectBoxEmitters[emitterKey]
@@ -238,13 +266,17 @@ LevelFuncs.Engine.Node.__EffectBoxParticleEmitterRuntime = function(volumeName, 
 		return
 	end
 
-	local nextInterval = EffectBoxRandomRange(math.max(0, intervalMin or 0), math.max(0, intervalMax or intervalMin or 0))
+	local nextInterval = EffectBoxRandomRange(minimumInterval, maximumInterval)
 	state.frames = math.max(1, math.floor(nextInterval * EFFECT_BOX_FPS + 0.5))
 
 	local centre = volume:GetPosition()
 	local rotation = volume:GetRotation()
 	local extents = volume:GetScale()
-	local blendMode = LevelFuncs.Engine.Node.GetBlendMode(blendID)
+	if not centre or not rotation or not extents then
+		return
+	end
+
+	local blendMode = LevelFuncs.Engine.Node.GetBlendMode(blendID or 7)
 	local animationTypes =
 	{
 		TEN.Effects.ParticleAnimationType.LOOP,
@@ -252,9 +284,10 @@ LevelFuncs.Engine.Node.__EffectBoxParticleEmitterRuntime = function(volumeName, 
 		TEN.Effects.ParticleAnimationType.BACK_AND_FORTH,
 		TEN.Effects.ParticleAnimationType.LIFE_TIME_SPREAD
 	}
+	local animationIndex = math.max(0, math.min(#animationTypes - 1, math.floor(animType or 0)))
 
-	for index = 1, math.max(1, math.floor(burstCount or 1)) do
-		local localPosition = EffectBoxRandomLocalPosition(extents, distribution or 0)
+	for index = 1, burstCount do
+		local localPosition = EffectBoxRandomLocalPosition(extents, distribution)
 		local position = centre + localPosition:Rotate(rotation)
 		local particleVelocity = velocity + TEN.Vec3(
 			EffectBoxRandomSigned(velocitySpread.x),
@@ -271,7 +304,7 @@ LevelFuncs.Engine.Node.__EffectBoxParticleEmitterRuntime = function(volumeName, 
 			vel = particleVelocity,
 			spriteSeqID = spriteSeqID,
 			spriteID = spriteID,
-			life = EffectBoxRandomRange(math.max(0.1, lifeMin or 0.1), math.max(0.1, lifeMax or lifeMin or 0.1)),
+			life = EffectBoxRandomRange(minimumLife, maximumLife),
 			maxYVel = maxYVel,
 			gravity = gravity,
 			friction = friction,
@@ -282,15 +315,15 @@ LevelFuncs.Engine.Node.__EffectBoxParticleEmitterRuntime = function(volumeName, 
 			startColor = startColor,
 			endColor = endColor,
 			blendMode = blendMode,
-			wind = wind,
-			damage = damage,
-			poison = poison,
-			burn = burn,
+			wind = wind or false,
+			damage = damage or false,
+			poison = poison or false,
+			burn = burn or false,
 			damageHit = damageHit,
-			animated = animated,
+			animated = animated or false,
 			frameRate = frameRate,
-			animType = animationTypes[(animType or 0) + 1] or TEN.Effects.ParticleAnimationType.LOOP,
-			light = light,
+			animType = animationTypes[animationIndex + 1],
+			light = light or false,
 			lightRadius = lightRadius,
 			lightFlicker = lightFlicker
 		}
