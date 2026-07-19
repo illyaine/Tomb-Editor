@@ -33,7 +33,13 @@ namespace TombEditor.Forms
             panelList.SectionHeader = "Project effect definitions";
             panelEditor.SectionHeader = "Definition preview";
             panelActivators.Visible = false;
+
+            // The generic event-set editor can reorder its complete backing list through the
+            // column header and drag-and-drop. This view deliberately contains only Effect Box
+            // rows, so those handlers must not be allowed to remove hidden regular event sets.
             dgvEvents.AllowUserToDragDropRows = false;
+            dgvEvents.ColumnHeaderMouseClick -= dgvEvents_ColumnHeaderMouseClick;
+            dgvEvents.DragDrop -= dgvEvents_DragDrop;
 
             if (dgvEvents.Columns.Count > 0)
                 dgvEvents.Columns[0].HeaderText = "Effect definitions";
@@ -71,11 +77,14 @@ namespace TombEditor.Forms
 
         private void EffectBoxSelectionChanged(object sender, EventArgs e)
         {
-            if (!IsHandleCreated || IsDisposed)
+            if (_lockSelectionChange || !IsHandleCreated || IsDisposed)
                 return;
 
             BeginInvoke(new Action(() =>
             {
+                if (IsDisposed)
+                    return;
+
                 if (_effectBoxAssignmentMode &&
                     SelectedSet is VolumeEventSet selectedDefinition &&
                     EffectBoxUtils.IsEffectBoxEventSet(selectedDefinition))
@@ -211,6 +220,9 @@ namespace TombEditor.Forms
 
             BeginInvoke(new Action(() =>
             {
+                if (IsDisposed)
+                    return;
+
                 RefreshEffectBoxRows();
                 UpdateEffectBoxSelectionState();
             }));
@@ -224,13 +236,19 @@ namespace TombEditor.Forms
             if (_effectBoxAssignmentMode)
             {
                 _lockSelectionChange = true;
-                for (int index = dgvEvents.Rows.Count - 1; index >= 0; index--)
+                try
                 {
-                    var rowSet = dgvEvents.Rows[index].Tag as EventSet;
-                    if (!EffectBoxUtils.IsEffectBoxEventSet(rowSet))
-                        dgvEvents.Rows.RemoveAt(index);
+                    for (int index = dgvEvents.Rows.Count - 1; index >= 0; index--)
+                    {
+                        var rowSet = dgvEvents.Rows[index].Tag as EventSet;
+                        if (!EffectBoxUtils.IsEffectBoxEventSet(rowSet))
+                            dgvEvents.Rows.RemoveAt(index);
+                    }
                 }
-                _lockSelectionChange = false;
+                finally
+                {
+                    _lockSelectionChange = false;
+                }
             }
 
             int definitionIndex = 0;
@@ -245,15 +263,15 @@ namespace TombEditor.Forms
                 var firstRoot = graph?.Nodes.FirstOrDefault();
                 var name = firstRoot != null && !string.IsNullOrWhiteSpace(firstRoot.Name)
                     ? firstRoot.Name
-                    : "Effect definition " + definitionIndex;
+                    : "Empty definition";
 
                 int usageCount = _editor.Level.GetAllObjects()
                     .OfType<VolumeInstance>()
                     .Count(volume => ReferenceEquals(volume.EventSet, eventSet));
                 bool assigned = _instance != null && ReferenceEquals(_instance.EventSet, eventSet);
 
-                row.Cells[0].Value = (assigned ? "● " : string.Empty) + name + " — " + usageCount +
-                    (usageCount == 1 ? " placed box" : " placed boxes");
+                row.Cells[0].Value = (assigned ? "● " : string.Empty) + definitionIndex + ". " + name +
+                    " — " + usageCount + (usageCount == 1 ? " placed box" : " placed boxes");
                 row.Cells[0].ToolTipText = "Project-wide Effect Box definition. Double-click to edit it.";
                 row.DefaultCellStyle.ForeColor = assigned ? Color.Gold : Color.Goldenrod;
                 row.DefaultCellStyle.SelectionForeColor = Color.Gold;
