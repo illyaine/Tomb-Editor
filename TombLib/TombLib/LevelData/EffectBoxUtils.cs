@@ -11,10 +11,10 @@ namespace TombLib.LevelData
     /// Defines the editor-side contract for TEN effect boxes.
     ///
     /// Effect boxes intentionally reuse box-volume transforms and the existing event/node
-    /// serialization. Their private event set is marked with a reserved prefix and has no
-    /// activators, so it is not executed as a trigger volume by the current runtime.
-    /// This keeps the graph persistent while leaving a clean integration point for the
-    /// dedicated runtime effect system.
+    /// serialization. Their private event set is marked with a reserved prefix, has no
+    /// activators and stores its graph in a disabled event. Consequently, the current
+    /// runtime cannot execute the graph accidentally. This keeps the authoring data
+    /// persistent while leaving a clean integration point for the dedicated runtime system.
     /// </summary>
     public static class EffectBoxUtils
     {
@@ -40,6 +40,11 @@ namespace TombLib.LevelData
             return volume is BoxVolumeInstance && IsEffectBoxEventSet(volume.EventSet);
         }
 
+        public static string CreateEventSetName()
+        {
+            return EventSetPrefix + Guid.NewGuid().ToString("N");
+        }
+
         public static BoxVolumeInstance Create(LevelSettings settings)
         {
             if (settings == null)
@@ -47,14 +52,14 @@ namespace TombLib.LevelData
 
             var eventSet = new VolumeEventSet
             {
-                Name = EventSetPrefix + Guid.NewGuid().ToString("N"),
+                Name = CreateEventSetName(),
                 Activators = VolumeActivators.None,
                 LastUsedEvent = EventType.OnVolumeInside
             };
 
             foreach (var entry in eventSet.Events)
             {
-                entry.Value.Enabled = entry.Key == EventType.OnVolumeInside;
+                entry.Value.Enabled = false;
                 entry.Value.Mode = EventSetMode.NodeEditor;
                 entry.Value.CallCounter = 0;
             }
@@ -79,7 +84,7 @@ namespace TombLib.LevelData
             set.LastUsedEvent = EventType.OnVolumeInside;
 
             var graphEvent = set.Events[EventType.OnVolumeInside];
-            graphEvent.Enabled = true;
+            graphEvent.Enabled = false;
             graphEvent.Mode = EventSetMode.NodeEditor;
             return graphEvent;
         }
