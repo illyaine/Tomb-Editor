@@ -131,7 +131,22 @@ namespace TombLib.LevelData
         public bool Enabled { get; set; } = true;
         public bool DetectInAdjacentRooms { get; set; } = false;
 
-        public EventSet EventSet { get; set; }
+        public EventSet EventSet
+        {
+            get { return _eventSet; }
+            set
+            {
+                _eventSet = value;
+
+                if (Room != null && this is BoxVolumeInstance &&
+                    value is VolumeEventSet definition &&
+                    EffectBoxUtils.IsEffectBoxEventSet(definition))
+                {
+                    EffectBoxDefinitionUtils.SetDefaultDefinition(Room.Level.Settings, definition);
+                }
+            }
+        }
+        private EventSet _eventSet;
 
         public override ObjectInstance Clone()
         {
@@ -145,17 +160,19 @@ namespace TombLib.LevelData
         {
             base.AddToRoom(level, room);
 
-            if (this.IsEffectBox() && string.IsNullOrWhiteSpace(LuaName))
-                AllocateNewLuaName();
-
             // Definitions are normally already registered in the project settings. Keep this
             // guard for copied rooms and cross-level transfers where the referenced definition
             // may enter the destination level together with the instance.
-            if (this.IsEffectBox() && EventSet is VolumeEventSet effectSet &&
-                !level.Settings.VolumeEventSets.Contains(effectSet))
+            if (this.IsEffectBox() && EventSet is VolumeEventSet effectSet)
             {
-                level.Settings.VolumeEventSets.Add(effectSet);
+                if (!level.Settings.VolumeEventSets.Contains(effectSet))
+                    level.Settings.VolumeEventSets.Add(effectSet);
+
+                EffectBoxDefinitionUtils.SetDefaultDefinition(level.Settings, effectSet);
             }
+
+            if (this.IsEffectBox() && string.IsNullOrWhiteSpace(LuaName))
+                AllocateNewLuaName();
         }
 
         public override void CopyDependentLevelSettings(Room.CopyDependentLevelSettingsArgs args)
