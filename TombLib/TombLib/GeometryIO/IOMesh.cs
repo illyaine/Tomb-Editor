@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using TombLib.Utils;
 
@@ -9,7 +10,24 @@ namespace TombLib.GeometryIO
         public string Name { get; private set; }
         public List<Vector3> Positions { get; private set; } = new List<Vector3>();
         public List<List<KeyValuePair<int, float>>> Weights { get; private set; } = new List<List<KeyValuePair<int, float>>>();
-        public List<Vector3> Normals { get; private set; } = new List<Vector3>();
+
+        private List<Vector3> _normals = new List<Vector3>();
+        private bool _normalsValidated;
+
+        public List<Vector3> Normals
+        {
+            get
+            {
+                EnsureValidNormals();
+                return _normals;
+            }
+            private set
+            {
+                _normals = value;
+                _normalsValidated = false;
+            }
+        }
+
         public List<Vector2> UV { get; private set; } = new List<Vector2>();
         public List<Vector4> Colors { get; private set; } = new List<Vector4>();
         public Dictionary<IOMaterial, IOSubmesh> Submeshes { get; private set; } = new Dictionary<IOMaterial, IOSubmesh>();
@@ -30,7 +48,7 @@ namespace TombLib.GeometryIO
                 foreach (var submesh in Submeshes)
                     foreach (var poly in submesh.Value.Polygons)
                         if (poly.Shape == IOPolygonShape.Quad)
-                        numQuads++;
+                            numQuads++;
                 return numQuads;
             }
         }
@@ -126,8 +144,58 @@ namespace TombLib.GeometryIO
             }
         }
 
+        private bool HasPolygons()
+        {
+            foreach (var submesh in Submeshes)
+                if (submesh.Value.Polygons.Count > 0)
+                    return true;
+
+            return false;
+        }
+
+        private static bool IsInvalidNormal(Vector3 normal)
+        {
+            return float.IsNaN(normal.X) || float.IsInfinity(normal.X) ||
+                   float.IsNaN(normal.Y) || float.IsInfinity(normal.Y) ||
+                   float.IsNaN(normal.Z) || float.IsInfinity(normal.Z) ||
+                   normal.LengthSquared() <= float.Epsilon;
+        }
+
+        private void EnsureValidNormals()
+        {
+            if (_normalsValidated || !HasPolygons())
+                return;
+
+            bool mustRecalculate = _normals.Count != Positions.Count;
+            if (!mustRecalculate)
+                foreach (var normal in _normals)
+                    if (IsInvalidNormal(normal))
+                    {
+                        mustRecalculate = true;
+                        break;
+                    }
+
+            if (mustRecalculate)
+                CalculateNormals();
+
+            for (int i = 0; i < _normals.Count; i++)
+                _normals[i] = IsInvalidNormal(_normals[i]) ? Vector3.UnitY : Vector3.Normalize(_normals[i]);
+
+            _normalsValidated = true;
+        }
+
         public void CalculateNormals(bool weighted = true)
         {
+            // Some importers request normal generation before face data is populated.
+            // Keep the normal list empty in this case so it can be regenerated once
+            // polygons are available instead of storing zero normals permanently.
+            if (!HasPolygons())
+            {
+                _normals.Clear();
+                _normalsValidated = false;
+                return;
+            }
+
             var helper = new VertexNormalAverageHelper(Positions);
 
             foreach (var submesh in Submeshes)
