@@ -18,7 +18,14 @@ namespace TombEditor.Controls.Panel3D
                 if (ModifierKeys == Keys.None)
                 {
                     var pickedObject = ((PickingResultObject)newPicking).ObjectInstance;
-                    EditorActions.EditObject(pickedObject, Parent);
+                    if (pickedObject is VolumeInstance volume && volume.IsEffectBox())
+                    {
+                        EffectBoxEditorLauncher.Show(Parent, volume);
+                    }
+                    else
+                    {
+                        EditorActions.EditObject(pickedObject, Parent);
+                    }
                 }
             }
             else if (newPicking is PickingResultSector)
@@ -36,7 +43,6 @@ namespace TombEditor.Controls.Panel3D
                             newlySelectedRooms.Add(pickedRoom);
 
                         _editor.SelectRooms(newlySelectedRooms);
-
                     }
                     else
                     {
@@ -48,7 +54,6 @@ namespace TombEditor.Controls.Panel3D
                             AnimateCamera(nextPos);
                         }
                     }
-
                 }
             }
         }

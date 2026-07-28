@@ -98,15 +98,17 @@ namespace TombLib.LevelData.Compilers.TombEngine
                     writer.Write(source.LuaName);
                 }
 
-                // Write event sets
-                int eventSetCount = _level.Settings.GlobalEventSets.Count + _level.Settings.VolumeEventSets.Count;
+                // Write event sets. Effect Box runtime sets are generated only for this compile
+                // and never added to the project settings or PRJ2 data.
+                var globalEventSets = EffectBoxRuntimeBuilder.BuildGlobalEventSets(_level);
+                int eventSetCount = globalEventSets.Count + _level.Settings.VolumeEventSets.Count;
                 writer.Write((uint)eventSetCount);
 
                 if (eventSetCount > 0)
                 {
-                    writer.Write((uint)_level.Settings.GlobalEventSets.Count);
-                    foreach (GlobalEventSet set in _level.Settings.GlobalEventSets)
-                        set.Write(writer, _level.Settings.GlobalEventSets);
+                    writer.Write((uint)globalEventSets.Count);
+                    foreach (GlobalEventSet set in globalEventSets)
+                        set.Write(writer, globalEventSets);
 
                     writer.Write((uint)_level.Settings.VolumeEventSets.Count);
                     foreach (VolumeEventSet set in _level.Settings.VolumeEventSets)

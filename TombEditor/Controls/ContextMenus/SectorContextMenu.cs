@@ -9,7 +9,7 @@ namespace TombEditor.Controls.ContextMenus
         public SectorContextMenu(Editor editor, IWin32Window owner, Room targetRoom, VectorInt2 targetSector)
             : base(editor, owner)
         {
-			Items.Add(new ToolStripMenuItem("Paste object", Properties.Resources.general_clipboard_16, (o, e) =>
+            Items.Add(new ToolStripMenuItem("Paste object", Properties.Resources.general_clipboard_16, (o, e) =>
             {
                 EditorActions.PasteObject(targetSector, targetRoom);
             }) { Enabled = Clipboard.ContainsData(typeof(ObjectClipboardData).FullName) });
@@ -26,12 +26,12 @@ namespace TombEditor.Controls.ContextMenus
                 EditorActions.MoveLara(owner, targetRoom, targetSector);
             }));
 
-			Items.Add(new ToolStripMenuItem("Move Object", Properties.Resources.general_target_16, (o, e) => 
+            Items.Add(new ToolStripMenuItem("Move Object", Properties.Resources.general_target_16, (o, e) =>
             {
-				var obj = editor.SelectedObject as PositionBasedObjectInstance;
-				EditorActions.MoveObject(obj, targetRoom, targetSector);
-			}) { Enabled = _editor.SelectedObject is PositionBasedObjectInstance && !(_editor.SelectedObject is ObjectGroup) });
-			Items.Add(new ToolStripSeparator());
+                var obj = editor.SelectedObject as PositionBasedObjectInstance;
+                EditorActions.MoveObject(obj, targetRoom, targetSector);
+            }) { Enabled = _editor.SelectedObject is PositionBasedObjectInstance && !(_editor.SelectedObject is ObjectGroup) });
+            Items.Add(new ToolStripSeparator());
 
             Items.Add(new ToolStripMenuItem("Add camera", Properties.Resources.objects_Camera_16, (o, e) =>
             {
@@ -39,10 +39,10 @@ namespace TombEditor.Controls.ContextMenus
             }));
 
             if (editor.Level.Settings.GameVersion.Native() <= TRVersion.Game.TR2)
-            Items.Add(new ToolStripMenuItem("Add room sprite", Properties.Resources.objects_Sprite_16, (o, e) =>
-            {
-                EditorActions.PlaceObject(targetRoom, targetSector, new SpriteInstance());
-            }));
+                Items.Add(new ToolStripMenuItem("Add room sprite", Properties.Resources.objects_Sprite_16, (o, e) =>
+                {
+                    EditorActions.PlaceObject(targetRoom, targetSector, new SpriteInstance());
+                }));
 
             Items.Add(new ToolStripMenuItem("Add flyby camera", Properties.Resources.objects_movie_projector_16, (o, e) =>
             {
@@ -76,6 +76,12 @@ namespace TombEditor.Controls.ContextMenus
 
             if (_editor.Level.IsTombEngine)
             {
+                Items.Add(new ToolStripMenuItem("Add effect box", EffectBoxIcon.Image16, (o, e) =>
+                {
+                    EditorActions.PlaceObject(targetRoom, targetSector,
+                        EffectBoxDefinitionUtils.CreateInstance(editor.Level.Settings));
+                }));
+
                 Items.Add(new ToolStripMenuItem("Add box volume", Properties.Resources.objects_volume_box_16, (o, e) =>
                 {
                     EditorActions.PlaceObject(targetRoom, targetSector, new BoxVolumeInstance());

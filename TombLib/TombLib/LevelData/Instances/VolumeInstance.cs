@@ -97,12 +97,26 @@ namespace TombLib.LevelData
 
         public override string ToString()
         {
+            if (this.IsEffectBox())
+            {
+                var graph = this.GetGraphEvent();
+                var effectCount = graph == null ? 0 : VisualScripting.TriggerNode.LinearizeNodes(graph.Nodes).Count;
+                return "Effect Box" + GetScriptIDOrName(true) +
+                       " (" + (Room?.ToString() ?? "NULL") + ")" + "\n" +
+                       effectCount + (effectCount == 1 ? " effect node" : " effect nodes");
+            }
+
             return "Box Volume" + GetScriptIDOrName(true) +
                    " (" + (Room?.ToString() ?? "NULL") +")" + "\n" +
                    (EventSet as VolumeEventSet)?.GetDescription() ?? string.Empty;
         }
 
-        public override string ShortName() => "Box volume" + GetScriptIDOrName() + " (" + (Room?.ToString() ?? "NULL") + ")";
+        public override string ShortName()
+        {
+            return this.IsEffectBox()
+                ? "Effect box" + GetScriptIDOrName() + " (" + (Room?.ToString() ?? "NULL") + ")"
+                : "Box volume" + GetScriptIDOrName() + " (" + (Room?.ToString() ?? "NULL") + ")";
+        }
     }
 
     public abstract class VolumeInstance : PositionAndScriptBasedObjectInstance, ISpatial
@@ -117,7 +131,49 @@ namespace TombLib.LevelData
         public bool Enabled { get; set; } = true;
         public bool DetectInAdjacentRooms { get; set; } = false;
 
-        public EventSet EventSet { get; set; }
+        public EventSet EventSet
+        {
+            get { return _eventSet; }
+            set
+            {
+                _eventSet = value;
+
+                if (Room != null && this is BoxVolumeInstance &&
+                    value is VolumeEventSet definition &&
+                    EffectBoxUtils.IsEffectBoxEventSet(definition))
+                {
+                    EffectBoxDefinitionUtils.SetDefaultDefinition(Room.Level.Settings, definition);
+                }
+            }
+        }
+        private EventSet _eventSet;
+
+        public override ObjectInstance Clone()
+        {
+            // Event sets are project-wide definitions. This intentionally retains the same
+            // reference, matching ordinary VolumeInstance behavior. The base clone clears
+            // the per-instance script ID and Lua name, so the placed copy remains independent.
+            return (VolumeInstance)base.Clone();
+        }
+
+        public override void AddToRoom(Level level, Room room)
+        {
+            base.AddToRoom(level, room);
+
+            // Definitions are normally already registered in the project settings. Keep this
+            // guard for copied rooms and cross-level transfers where the referenced definition
+            // may enter the destination level together with the instance.
+            if (this.IsEffectBox() && EventSet is VolumeEventSet effectSet)
+            {
+                if (!level.Settings.VolumeEventSets.Contains(effectSet))
+                    level.Settings.VolumeEventSets.Add(effectSet);
+
+                EffectBoxDefinitionUtils.SetDefaultDefinition(level.Settings, effectSet);
+            }
+
+            if (this.IsEffectBox() && string.IsNullOrWhiteSpace(LuaName))
+                AllocateNewLuaName();
+        }
 
         public override void CopyDependentLevelSettings(Room.CopyDependentLevelSettingsArgs args)
         {
