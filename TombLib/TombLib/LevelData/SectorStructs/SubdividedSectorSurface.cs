@@ -1,5 +1,6 @@
 using System;
 using TombLib.LevelData.SectorEnums;
+using TombLib.Utils;
 
 namespace TombLib.LevelData.SectorStructs
 {
@@ -66,6 +67,19 @@ namespace TombLib.LevelData.SectorStructs
         public SubdividedSectorSurface Clone()
         {
             return new SubdividedSectorSurface(Subdivisions, CopyHeights());
+        }
+
+        public void Transform(RectTransformation transformation)
+        {
+            int[,] sourceHeights = CopyHeights();
+            var gridSize = new VectorInt2(VertexCount, VertexCount);
+
+            for (int x = 0; x < VertexCount; x++)
+                for (int z = 0; z < VertexCount; z++)
+                {
+                    VectorInt2 transformed = transformation.Transform(new VectorInt2(x, z), gridSize);
+                    _heights[transformed.X, transformed.Y] = sourceHeights[x, z];
+                }
         }
 
         object ICloneable.Clone()
